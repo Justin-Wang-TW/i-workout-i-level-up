@@ -1,0 +1,17 @@
+{
+  "name": "我運動，我升級",
+  "short_name": "我運動我升級",
+  "description": "飲水、走路、運動即是修行：讓修士突破境界的健康養成遊戲",
+  "lang": "zh-Hant-TW",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#070912",
+  "theme_color": "#070912",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

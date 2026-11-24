@@ -1,0 +1,11 @@
+# Supabase CLI 設定（只列出本專案需要調整的項目）
+project_id = "i-workout-i-level-up"
+
+# 兩個函式都自行驗證身分：
+# - sync-health 用同步金鑰（捷徑沒有登入憑證）
+# - create-sync-token 在函式內向 Auth 查詢登入者（也讓瀏覽器的 CORS 預檢能通過）
+[functions.sync-health]
+verify_jwt = false
+
+[functions.create-sync-token]
+verify_jwt = false

@@ -1,0 +1,18 @@
+# 每次開 Pull Request 時自動執行測試與建置
+name: CI
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npm test
+      - run: npm run build

@@ -1,0 +1,27 @@
+# 部署捷徑同步用的 Supabase Edge Functions
+# 需要：Variables › SUPABASE_PROJECT_REF、Secrets › SUPABASE_ACCESS_TOKEN（見 README「啟用 iPhone 捷徑同步」）
+name: Deploy Supabase functions
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/functions/**'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    if: ${{ vars.SUPABASE_PROJECT_REF != '' }}
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: 部署 sync-health（捷徑呼叫，用同步金鑰驗證）
+        run: supabase functions deploy sync-health --project-ref "$PROJECT_REF" --no-verify-jwt
+      - name: 部署 create-sync-token（網頁產生金鑰）
+        run: supabase functions deploy create-sync-token --project-ref "$PROJECT_REF" --no-verify-jwt
