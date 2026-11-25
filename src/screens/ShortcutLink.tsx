@@ -62,16 +62,16 @@ export function ShortcutGuide() {
           加入「<strong>如果</strong>」（If）：條件選「捷徑輸入」「<strong>包含</strong>」<code>iwlu_</code>。在「如果」與「否則」之間放：
           <ul>
             <li>
-              「<strong>儲存檔案</strong>」（Save File）：儲存「捷徑輸入」，關閉「詢問儲存位置」，子路徑填 <code>/我運動我升級/金鑰.txt</code>
+              「<strong>儲存檔案</strong>」（Save File）：儲存「捷徑輸入」，關閉「詢問儲存位置」，子路徑填 <code>/我運動我升級金鑰.txt</code>
               ，開啟「覆寫」。
             </li>
-            <li>「顯示通知」：已連結遊戲。</li>
+            <li>「顯示通知」：把預設的「哈囉，全世界！」改成「已連結遊戲」。</li>
           </ul>
           「否則」裡不用放東西。
         </li>
         <li>
-          「如果」結束後，加入「<strong>取得檔案</strong>」（Get File）：位置「捷徑」資料夾，路徑 <code>/我運動我升級/金鑰.txt</code>。再加入「
-          <strong>取得輸入的文字</strong>」（Get Text from Input），點結果 › 重新命名為「金鑰」。
+          「如果」結束後，加入「<strong>取得檔案</strong>」（Get File）：位置「捷徑」資料夾，路徑 <code>/我運動我升級金鑰.txt</code>（兩處檔名必須一字不差），展開後<strong>關閉「找不到檔案時顯示錯誤」</strong>。再加入「
+          <strong>取得輸入的文字</strong>」（Get Text from Input），點結果 › 重新命名為「金鑰」。接著加入「如果」：「金鑰」「沒有任何值」時，「顯示通知」請先到遊戲按「交給捷徑保存」，再加「停止此捷徑」，然後「結束如果」。
         </li>
         <li>
           加入「<strong>尋找健康樣本</strong>」（Find Health Samples）：類型「步數」，條件「開始日期」「是今天」。再加入「
