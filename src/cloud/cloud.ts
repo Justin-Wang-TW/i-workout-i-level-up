@@ -11,6 +11,14 @@ const SESSION_KEY = 'iwlu-cloud-session';
 
 export const SHORTCUT_NAME = '我運動我升級同步';
 
+/** 捷徑的 iCloud 分享連結（建立並分享捷徑後填入；空字串＝尚未提供） */
+export const SHORTCUT_INSTALL_URL = '';
+
+/** 把同步金鑰交給捷徑保存（捷徑收到 iwlu_ 開頭的文字會存成檔案） */
+export function shortcutLinkUrl(token: string): string {
+  return `shortcuts://run-shortcut?name=${encodeURIComponent(SHORTCUT_NAME)}&input=text&text=${encodeURIComponent(token)}`;
+}
+
 /** 建議的捷徑自動化時間（每天 4 次） */
 export const SYNC_TIMES = ['12:00', '18:00', '22:00', '23:50'];
 
