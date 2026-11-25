@@ -1,6 +1,20 @@
 import { useState } from 'react';
-import { ATTRIBUTE_LABEL, GAME_CONFIG, levelInfo, streakMultiplier, type Attribute } from '../../packages/game-core/index.ts';
+import {
+  ATTRIBUTE_LABEL,
+  GAME_CONFIG,
+  PLAN_DAYS,
+  levelInfo,
+  planStage,
+  streakMultiplier,
+  tipForDay,
+  type Attribute,
+} from '../../packages/game-core/index.ts';
 import { CULTIVATORS, Cultivator } from '../components/Cultivator.tsx';
+import { Flame } from '../components/Flame.tsx';
+import { claimableMilestones, flameTier, pathProgress } from '../state/cultivation.ts';
+import { getInv } from '../state/inventory.ts';
+import { NutritionPanel } from './FoodLog.tsx';
+import { DailyLotPanel, JournalPanel } from './Spirit.tsx';
 import { Panel, ProgressBar, StatPill } from '../components/ui.tsx';
 import { MealsPanel } from './Meals.tsx';
 import { useGame } from '../state/GameContext.tsx';
@@ -22,10 +36,12 @@ export function Status({
   onOpenWorkout,
   onOpenWalk,
   onGoQuests,
+  onGoPath,
 }: {
   onOpenWorkout: () => void;
   onOpenWalk: () => void;
   onGoQuests: () => void;
+  onGoPath: () => void;
 }) {
   const { save, today, update, notify } = useGame();
   const player = save.player!;
@@ -41,6 +57,11 @@ export function Status({
   const cls = CULTIVATORS.find((c) => c.id === player.avatar) ?? CULTIVATORS[0];
   const [bursts, setBursts] = useState<{ id: number; text: string }[]>([]);
   const [absorbing, setAbsorbing] = useState(0);
+  const inv = getInv(save);
+  const flame = flameTier(streak);
+  const plan = pathProgress(save, today);
+  const milestones = claimableMilestones(save, today).length;
+  const back = inv.expedition && Date.parse(inv.expedition.end) <= Date.now();
 
   const drink = () => {
     const before = day.waterMl;
@@ -65,7 +86,7 @@ export function Status({
       <Panel className={`hero realm-${info.realm.id}`}>
         <div className="hero-figure">
           <div className={absorbing ? 'absorb' : ''}>
-            <Cultivator id={player.avatar} realm={info.realm.id} size={168} />
+            <Cultivator id={player.avatar} realm={info.realm.id} size={168} gear={inv.equipped} />
           </div>
         </div>
         <div className="hero-name">
@@ -90,11 +111,58 @@ export function Status({
             <StatPill key={k} label={ATTRIBUTE_LABEL[k]} value={attr[k]} />
           ))}
         </div>
-        <div className="streak-row">
-          <span>連續修煉 {streak} 日</span>
-          <span className="muted">{mult > 1 ? `修為 ×${mult}` : '連修 3 日起修為加成'}</span>
+        <div className="streak-row flame-row">
+          <Flame streak={streak} size={46} />
+          <div className="grow">
+            <div>
+              本命丹火・<span style={{ color: flame.color }}>{flame.name}</span>
+            </div>
+            <div className="muted">
+              連燃 {streak} 日・{mult > 1 ? `修為 ×${mult}` : '連修 3 日起修為加成'}
+            </div>
+          </div>
+          <div className="wallet-mini mono" title="靈石／精力">
+            <span>
+              <i className="gem" aria-hidden="true" />
+              {inv.stones}
+            </span>
+            <span>
+              <i className="bolt" aria-hidden="true" />
+              {inv.stamina}
+            </span>
+          </div>
         </div>
       </Panel>
+
+      {plan && save.path ? (
+        <button className="path-mini" onClick={onGoPath}>
+          <div className="path-mini-top">
+            <span>
+              築基・{planStage(plan.dayNo).name}期 第 <b className="mono">{plan.dayNo}</b> / {PLAN_DAYS} 日
+              {save.path.hard && <span className="tag">逆天</span>}
+            </span>
+            <span className={plan.todayDone ? 'ok' : 'muted'}>{plan.todayDone ? '今日圓滿' : '今日未成'} ›</span>
+          </div>
+          <ProgressBar value={plan.completed} max={PLAN_DAYS} tone="gold" />
+          {!plan.finished && <div className="path-mini-tip">{tipForDay(plan.dayNo)}</div>}
+          {milestones > 0 && <div className="ok">有 {milestones} 個里程碑可領取</div>}
+        </button>
+      ) : (
+        <button className="path-mini" onClick={onGoPath}>
+          <div className="path-mini-top">
+            <span>六十六日築基</span>
+            <span className="muted">開始 ›</span>
+          </div>
+          <div className="path-mini-tip">連續修煉 66 天，讓好習慣成為日常。</div>
+        </button>
+      )}
+      {back && (
+        <button className="claim-banner" onClick={onGoPath}>
+          【歷練歸來】修士已返回洞府，前往「修行」清點戰利品 ›
+        </button>
+      )}
+
+      <DailyLotPanel />
 
       {claimable > 0 && (
         <button className="claim-banner" onClick={onGoQuests}>
@@ -138,6 +206,7 @@ export function Status({
       </Panel>
 
       <MealsPanel onGoQuests={onGoQuests} />
+      <NutritionPanel />
 
       <Panel title="今日功課" right={<span className="muted mono">今日 +{earned} 修為</span>}>
         <ul className="quest-mini">
@@ -167,6 +236,8 @@ export function Status({
           手動記錄步數／運動
         </button>
       </Panel>
+
+      <JournalPanel />
     </div>
   );
 }

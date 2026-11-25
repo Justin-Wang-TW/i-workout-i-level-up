@@ -25,3 +25,5 @@ jobs:
         run: supabase functions deploy sync-health --project-ref "$PROJECT_REF" --no-verify-jwt
       - name: 部署 create-sync-token（網頁產生金鑰）
         run: supabase functions deploy create-sync-token --project-ref "$PROJECT_REF" --no-verify-jwt
+      - name: 部署 analyze-meal（餐點照片 AI 估算）
+        run: supabase functions deploy analyze-meal --project-ref "$PROJECT_REF" --no-verify-jwt

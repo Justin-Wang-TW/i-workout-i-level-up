@@ -1,9 +1,21 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { levelInfo } from '../packages/game-core/index.ts';
 import { Breakthrough } from './components/Breakthrough.tsx';
+import { Celebration } from './components/Celebration.tsx';
+import {
+  claimableMilestones,
+  clearPathNotice,
+  markCelebrated,
+  pathProgress,
+  plotReadyAt,
+  settlePath,
+  shouldCelebrate,
+} from './state/cultivation.ts';
+import { getInv } from './state/inventory.ts';
+import { Path } from './screens/Path.tsx';
 import { CloudSyncProvider } from './cloud/CloudSync.tsx';
 import { GameProvider, useGame } from './state/GameContext.tsx';
-import { claimableCount, markLevelSeen, totalXp } from './state/game.ts';
+import { claimableCount, markLevelSeen, streakOn, totalXp } from './state/game.ts';
 import { History } from './screens/History.tsx';
 import { Onboarding } from './screens/Onboarding.tsx';
 import { Quests } from './screens/Quests.tsx';
@@ -12,11 +24,19 @@ import { Status } from './screens/Status.tsx';
 import { Workout } from './screens/Workout.tsx';
 import { WalkSession } from './gps/WalkSession.tsx';
 
-type Tab = 'status' | 'quests' | 'history' | 'settings';
+type Tab = 'status' | 'quests' | 'path' | 'history' | 'settings';
 
 const ICONS: Record<Tab, ReactNode> = {
   status: <path d="M2 20l6.5-11 4 6 3-4.5L22 20zM17.5 4.5a2 2 0 1 0 0 .01" />,
   quests: <path d="M6 3h12v18l-6-4-6 4z" />,
+  path: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 3a4.5 4.5 0 0 1 0 9a4.5 4.5 0 0 0 0 9" />
+      <circle cx="12" cy="7.5" r="1" />
+      <circle cx="12" cy="16.5" r="1" />
+    </>
+  ),
   history: <path d="M4 20V10M10 20V4M16 20v-8M22 20H2" />,
   settings: (
     <>
@@ -26,7 +46,7 @@ const ICONS: Record<Tab, ReactNode> = {
   ),
 };
 
-const LABELS: Record<Tab, string> = { status: '洞府', quests: '任務', history: '紀錄', settings: '設定' };
+const LABELS: Record<Tab, string> = { status: '洞府', quests: '任務', path: '修行', history: '紀錄', settings: '設定' };
 
 function LevelUpOverlay() {
   const { save, update } = useGame();
@@ -40,6 +60,38 @@ function LevelUpOverlay() {
       onDone={() => update(markLevelSeen)}
     />
   );
+}
+
+/** 今日功課圓滿時的慶祝（升級動畫優先） */
+function CelebrationOverlay() {
+  const { save, today, update } = useGame();
+  if (!save.player || !shouldCelebrate(save, today)) return null;
+  if (levelInfo(totalXp(save)).level > save.lastSeenLevel) return null;
+  const p = pathProgress(save, today);
+  return (
+    <Celebration
+      dayNo={p?.completed ?? 0}
+      streak={streakOn(save, today)}
+      hasPath={!!p}
+      onDone={() => update((s) => markCelebrated(s, today))}
+    />
+  );
+}
+
+/** 逆天模式結算與通知 */
+function PathKeeper() {
+  const { save, today, update, notify } = useGame();
+  const hard = save.path?.hard;
+  useEffect(() => {
+    if (hard) update((s) => settlePath(s, today));
+  }, [hard, today, update]);
+  const notice = save.path?.notice;
+  useEffect(() => {
+    if (!notice) return;
+    notify('【天道示警】', notice);
+    update(clearPathNotice);
+  }, [notice, notify, update]);
+  return null;
 }
 
 function Toasts() {
@@ -77,6 +129,12 @@ function Shell() {
   }
 
   const badge = claimableCount(save, today);
+  const inv = getInv(save);
+  const nowMs = Date.now();
+  const pathBadge =
+    claimableMilestones(save, today).length +
+    (inv.expedition && Date.parse(inv.expedition.end) <= nowMs ? 1 : 0) +
+    inv.plots.filter((p) => p && plotReadyAt(p) <= nowMs).length;
 
   return (
     <div className="app">
@@ -86,9 +144,15 @@ function Shell() {
       </header>
       <main>
         {tab === 'status' && (
-          <Status onOpenWorkout={() => setWorkoutOpen(true)} onOpenWalk={() => setWalkOpen(true)} onGoQuests={() => setTab('quests')} />
+          <Status
+            onOpenWorkout={() => setWorkoutOpen(true)}
+            onOpenWalk={() => setWalkOpen(true)}
+            onGoQuests={() => setTab('quests')}
+            onGoPath={() => setTab('path')}
+          />
         )}
         {tab === 'quests' && <Quests />}
+        {tab === 'path' && <Path />}
         {tab === 'history' && <History />}
         {tab === 'settings' && <Settings />}
       </main>
@@ -100,12 +164,15 @@ function Shell() {
             </svg>
             <span>{LABELS[t]}</span>
             {t === 'quests' && badge > 0 && <span className="badge">{badge}</span>}
+            {t === 'path' && pathBadge > 0 && <span className="badge">{pathBadge}</span>}
           </button>
         ))}
       </nav>
       {workoutOpen && <Workout onClose={() => setWorkoutOpen(false)} />}
       {walkOpen && <WalkSession onClose={() => setWalkOpen(false)} />}
       <LevelUpOverlay />
+      <CelebrationOverlay />
+      <PathKeeper />
       <Toasts />
     </div>
   );

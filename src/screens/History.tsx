@@ -1,4 +1,4 @@
-import { addDays, longestWorkoutMin } from '../../packages/game-core/index.ts';
+import { MOODS, addDays, longestWorkoutMin, sumNutrients } from '../../packages/game-core/index.ts';
 import { Panel } from '../components/ui.tsx';
 import { TracksPanel } from '../gps/TracksPanel.tsx';
 import { useGame } from '../state/GameContext.tsx';
@@ -19,6 +19,10 @@ export function History() {
   const totalCups = Object.values(save.days).reduce((s, d) => s + d.cups.length, 0);
   const bodyweightDays = Object.values(save.days).filter((d) => d.bodyweightDone).length;
   const recent = [...save.ledger].reverse().slice(0, 20);
+  const journals = days.map((d) => ({ day: d, j: save.days[d]?.journal })).filter((x) => x.j);
+  const kcalDays = days
+    .map((d) => ({ day: d, total: sumNutrients((save.food ?? []).filter((f) => f.day === d)), n: (save.food ?? []).filter((f) => f.day === d).length }))
+    .filter((x) => x.n > 0);
 
   return (
     <div className="screen">
@@ -88,6 +92,40 @@ export function History() {
           </ul>
         )}
       </Panel>
+
+      {journals.length > 0 && (
+        <Panel title="修行日誌" right={<span className="muted">近 14 日</span>}>
+          <ul className="journal-list">
+            {journals.map(({ day, j }) => {
+              const m = MOODS.find((x) => x.value === j!.mood);
+              return (
+                <li key={day}>
+                  <span className="muted mono">{shortDate(day)}</span>
+                  <span aria-label={m?.name}>{m?.emoji}</span>
+                  <span>{j!.text || m?.name}</span>
+                </li>
+              );
+            })}
+          </ul>
+        </Panel>
+      )}
+
+      {kcalDays.length > 0 && (
+        <Panel title="飲食紀錄" right={<span className="muted">近 14 日</span>}>
+          <ul className="ledger">
+            {kcalDays.map(({ day, total, n }) => (
+              <li key={day}>
+                <span>
+                  {shortDate(day)} <span className="muted">{n} 筆</span>
+                </span>
+                <span className="mono">
+                  {Math.round(total.kcal)} 大卡・醣 {Math.round(total.carbsG)}・蛋白 {Math.round(total.proteinG)}・脂 {Math.round(total.fatG)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </Panel>
+      )}
     </div>
   );
 }

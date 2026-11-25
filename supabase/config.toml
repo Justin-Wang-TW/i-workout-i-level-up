@@ -9,3 +9,7 @@ verify_jwt = false
 
 [functions.create-sync-token]
 verify_jwt = false
+
+# 餐點照片 AI 估算：函式內自行驗證登入者
+[functions.analyze-meal]
+verify_jwt = false

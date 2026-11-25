@@ -2,7 +2,7 @@
 // 練氣：靈氣與法陣 → 築基：本命法寶 → 金丹：丹田金丹 → 元嬰：頭頂光環
 // → 化神：光環放射 → 渡劫：雷劫 → 飛升：金光萬丈
 import { useId, type ReactNode } from 'react';
-import type { RealmId } from '../../packages/game-core/index.ts';
+import type { GearSlot, RealmId } from '../../packages/game-core/index.ts';
 import type { AvatarId } from '../state/types.ts';
 
 export interface CultivatorDef {
@@ -61,11 +61,14 @@ export function Cultivator({
   realm = 'qi',
   size = 160,
   animate = true,
+  gear = {},
 }: {
   id: AvatarId;
   realm?: RealmId;
   size?: number;
   animate?: boolean;
+  /** 已裝備的法寶（v0.7） */
+  gear?: Partial<Record<GearSlot, string>>;
 }) {
   const def = CULTIVATORS.find((c) => c.id === id) ?? CULTIVATORS[0];
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
@@ -230,7 +233,9 @@ export function Cultivator({
             <circle cx="109" cy="68" r="2.6" fill="#f2a3a3" opacity="0.35" />
           </>
         )}
+        <GearOnBody gear={gear} hairMale={def.hair === 'male'} animate={on} />
       </g>
+      <GearRelic gear={gear} animate={on} />
 
       {/* 築基以上：本命法寶 */}
       {atLeast(realm, 'foundation') && def.id === 'sword' && (
@@ -288,4 +293,94 @@ export function Cultivator({
         ))}
     </svg>
   );
+}
+
+/** 穿戴在身上的法寶：頭冠、法衣紋樣、腰佩 */
+function GearOnBody({ gear, hairMale, animate }: { gear: Partial<Record<GearSlot, string>>; hairMale: boolean; animate: boolean }) {
+  return (
+    <g>
+      {gear.robe === 'cloud_robe' && (
+        <g fill="none" stroke="#bfefff" strokeWidth="1.3" opacity="0.75" strokeLinecap="round">
+          <path d="M66 120 q4 -6 9 -2 q3 4 -2 6" />
+          <path d="M134 120 q-4 -6 -9 -2 q-3 4 2 6" />
+          <path d="M84 104 q5 -5 9 -1 M107 104 q5 -5 9 -1" />
+          <path d="M62 160 q6 -7 12 -2 M126 160 q6 -7 12 -2" />
+        </g>
+      )}
+      {gear.robe === 'star_robe' && (
+        <g>
+          <path d="M78 88 Q100 82 122 88 L131 142 L69 142 Z" fill="#7a5bd6" opacity="0.35" />
+          {[
+            [84, 112], [116, 108], [72, 128], [128, 126], [100, 133], [92, 96], [110, 120],
+          ].map(([x, y], i) => (
+            <circle key={i} cx={x} cy={y} r="1.3" fill="#f5efff">
+              {animate && <animate attributeName="opacity" values="0.3;1;0.3" dur={`${2 + (i % 3) * 0.7}s`} repeatCount="indefinite" />}
+            </circle>
+          ))}
+        </g>
+      )}
+      {gear.head === 'jade_pin' && (
+        <g>
+          <line x1={hairMale ? 89 : 90} y1={hairMale ? 31 : 33} x2={hairMale ? 112 : 111} y2={hairMale ? 40 : 40} stroke="#5fd4b0" strokeWidth="2.4" strokeLinecap="round" />
+          <circle cx={hairMale ? 89 : 90} cy={hairMale ? 31 : 33} r="2.6" fill="#8fe3c4" />
+        </g>
+      )}
+      {gear.head === 'gold_crown' && (
+        <g>
+          <path d="M90 34 L92 24 L96 30 L100 21 L104 30 L108 24 L110 34 Z" fill="#f2c94c" stroke="#a8842a" strokeWidth="0.8" />
+          <circle cx="100" cy="29" r="1.8" fill="#d6455d" />
+        </g>
+      )}
+      {gear.waist === 'warm_jade' && (
+        <g>
+          <line x1="90" y1="125" x2="90" y2="131" stroke="#c9a85c" strokeWidth="1" />
+          <circle cx="90" cy="134" r="3.6" fill="#8fe3c4" stroke="#4fa889" strokeWidth="0.8" />
+          <circle cx="90" cy="134" r="1.2" fill="#2d6b58" />
+          <path d="M90 138 L88 145 M90 138 L92 145" stroke="#d6455d" strokeWidth="1" />
+        </g>
+      )}
+      {gear.waist === 'cosmos_bag' && (
+        <g>
+          <path d="M113 125 Q109 136 114 140 Q120 142 123 136 Q124 129 118 125 Z" fill="#8a5a2b" stroke="#c9a85c" strokeWidth="0.9" />
+          <path d="M113 126 Q118 129 119 125" stroke="#c9a85c" strokeWidth="1" fill="none" />
+          <text x="117.5" y="136" fontSize="5" textAnchor="middle" fill="#f2d48a">乾</text>
+        </g>
+      )}
+    </g>
+  );
+}
+
+/** 浮在身旁的法器 */
+function GearRelic({ gear, animate }: { gear: Partial<Record<GearSlot, string>>; animate: boolean }) {
+  if (gear.relic === 'gourd') {
+    return (
+      <g>
+        {animate && <animateTransform attributeName="transform" type="translate" values="0 0;0 -5;0 0" dur="3.4s" repeatCount="indefinite" />}
+        <g transform="translate(46 22) rotate(16)">
+          <circle cx="0" cy="0" r="6" fill="#d6a14a" stroke="#8a6326" strokeWidth="0.8" />
+          <ellipse cx="0" cy="13" rx="9" ry="10" fill="#c98f35" stroke="#8a6326" strokeWidth="0.8" />
+          <rect x="-4.5" y="4" width="9" height="2.4" fill="#a8432f" />
+          <rect x="-1.5" y="-9" width="3" height="4" fill="#6b4a1f" />
+          <text x="0" y="16" fontSize="6" textAnchor="middle" fill="#fff3c8">福</text>
+        </g>
+      </g>
+    );
+  }
+  if (gear.relic === 'thunder_bell') {
+    return (
+      <g>
+        {animate && <animateTransform attributeName="transform" type="translate" values="0 0;0 -6;0 0" dur="2.8s" repeatCount="indefinite" />}
+        <g transform="translate(46 28)">
+          <path d="M-8 10 Q-8 -6 0 -8 Q8 -6 8 10 Z" fill="#a78bfa" stroke="#e9e3ff" strokeWidth="0.9" />
+          <rect x="-10" y="9" width="20" height="3" rx="1" fill="#e9e3ff" />
+          <circle cx="0" cy="14" r="2" fill="#f2c94c" />
+          <path d="M-2 -8 Q0 -13 2 -8" stroke="#e9e3ff" strokeWidth="1.2" fill="none" />
+          <path d="M12 -2 L16 2 L13 3 L18 9" stroke="#e9e3ff" strokeWidth="1.2" fill="none" opacity="0">
+            {animate && <animate attributeName="opacity" values="0;1;0;0" keyTimes="0;0.1;0.25;1" dur="2.2s" repeatCount="indefinite" />}
+          </path>
+        </g>
+      </g>
+    );
+  }
+  return null;
 }

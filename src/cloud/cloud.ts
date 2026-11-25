@@ -156,3 +156,30 @@ export async function fetchHealth(fromDay: string): Promise<{ daily: CloudDailyR
   if (!d.ok || !w.ok) throw new Error(`讀取同步資料失敗（HTTP ${d.ok ? w.status : d.status}）`);
   return { daily: (await d.json()) as CloudDailyRow[], workouts: (await w.json()) as CloudWorkoutRow[] };
 }
+
+export type MealPhotoMode = 'photo' | 'label';
+
+export interface MealAnalysis {
+  ok: boolean;
+  /** AI 估算結果（ok 時才有） */
+  estimate?: unknown;
+  /** 營養標示：每包裝份數 */
+  servingsPerPackage?: number;
+  /** no_ai = 雲端尚未設定 AI 金鑰；limit = 今日次數已用完 */
+  code?: 'no_ai' | 'limit' | 'bad_image' | 'error';
+  error?: string;
+  remaining?: number;
+}
+
+/** 把照片送到雲端由 AI 估算熱量與營養素（照片不會被儲存） */
+export async function analyzeMeal(imageBase64: string, mediaType: string, mode: MealPhotoMode, hint: string): Promise<MealAnalysis> {
+  if (!isCloudConfigured()) return { ok: false, code: 'no_ai', error: '雲端尚未設定' };
+  const res = await authed('/functions/v1/analyze-meal', {
+    method: 'POST',
+    body: JSON.stringify({ image: imageBase64, mediaType, mode, hint: hint.slice(0, 200) }),
+  });
+  const data = (await res.json().catch(() => ({}))) as MealAnalysis;
+  if (res.status === 404) return { ok: false, code: 'no_ai', error: 'AI 辨識功能尚未啟用' };
+  if (!res.ok || !data.ok) return { ok: false, code: data.code ?? 'error', error: data.error || `辨識失敗（HTTP ${res.status}）` };
+  return data;
+}

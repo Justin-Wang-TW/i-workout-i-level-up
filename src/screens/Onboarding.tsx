@@ -3,14 +3,18 @@ import {
   DEFAULT_TIMEZONE,
   DIFFICULTY_LABEL,
   GAME_CONFIG,
+  dayKeyOf,
   waterGoalFromWeight,
   type Difficulty,
+  type RootId,
 } from '../../packages/game-core/index.ts';
 import { CULTIVATORS, Cultivator } from '../components/Cultivator.tsx';
 import { Panel } from '../components/ui.tsx';
 import { useGame } from '../state/GameContext.tsx';
+import { startPath } from '../state/cultivation.ts';
 import { createPlayer } from '../state/game.ts';
 import type { AvatarId } from '../state/types.ts';
+import { RootQuiz } from './RootQuiz.tsx';
 
 const DIFFICULTY_HINT: Record<Difficulty, string> = {
   beginner: '凡人體質',
@@ -25,14 +29,16 @@ export function Onboarding() {
   const [avatar, setAvatar] = useState<AvatarId>('sword');
   const [weight, setWeight] = useState('');
   const [difficulty, setDifficulty] = useState<Difficulty>('beginner');
+  const [root, setRoot] = useState<RootId | undefined>();
 
   const weightKg = weight ? Number(weight) : null;
   const goal = waterGoalFromWeight(weightKg);
   const chosen = CULTIVATORS.find((c) => c.id === avatar)!;
 
   const finish = () => {
+    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || DEFAULT_TIMEZONE;
     update((s) =>
-      createPlayer(s, {
+      startPath(createPlayer(s, {
         name: name.trim() || '無名散修',
         avatar,
         createdAt: new Date().toISOString(),
@@ -40,9 +46,10 @@ export function Onboarding() {
         waterGoalMl: goal,
         cupMl: GAME_CONFIG.water.defaultCupMl,
         difficulty,
-        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || DEFAULT_TIMEZONE,
+        timeZone,
         safetyAcknowledged: false,
-      }),
+        root,
+      }), dayKeyOf(new Date(), timeZone)),
     );
   };
 
@@ -61,6 +68,24 @@ export function Onboarding() {
           <button className="btn btn-primary btn-block" onClick={() => setStep(1)}>
             踏入仙途
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 1) {
+    return (
+      <div className="onboarding">
+        <div className="panel">
+          <RootQuiz
+            finishLabel="依此起步，立下道號"
+            onFinish={(r) => {
+              setRoot(r.root);
+              setDifficulty(r.difficulty);
+              setStep(2);
+            }}
+            onSkip={() => setStep(2)}
+          />
         </div>
       </div>
     );
@@ -119,7 +144,7 @@ export function Onboarding() {
         <button className="btn btn-primary btn-block" onClick={finish}>
           開始修煉
         </button>
-        <p className="hint">資料目前只存在這支手機的瀏覽器中，之後的版本會加入登入與雲端同步。</p>
+        <p className="hint">開始後會自動展開「六十六日築基」：每完成一天功課，道基就前進一日。</p>
       </Panel>
     </div>
   );

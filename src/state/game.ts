@@ -12,6 +12,8 @@ import {
   type Attribute,
   dayKeyOf,
   mealWindowState,
+  stonesForQuest,
+  STAMINA_PER_CLAIM,
   type DailyQuestCode,
   type DayActivity,
   type MealId,
@@ -29,6 +31,7 @@ import {
   type Player,
   type SaveData,
 } from './types.ts';
+import { emptyInventory, grantQuestRewards, migrateInventory } from './inventory.ts';
 
 export function newId(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -118,7 +121,7 @@ export function claimableCount(save: SaveData, day: DayKey): number {
 // ───────── 修改動作 ─────────
 
 export function createPlayer(save: SaveData, player: Player): SaveData {
-  return { ...save, player, lastSeenLevel: 1 };
+  return { ...save, player, lastSeenLevel: 1, inv: save.inv ?? emptyInventory() };
 }
 
 export function updatePlayer(save: SaveData, patch: Partial<Player>): SaveData {
@@ -301,7 +304,8 @@ export function claimDaily(save: SaveData, day: DayKey, code: DailyQuestCode, no
     attribute: q.def.attribute,
     at: now.toISOString(),
   };
-  return { save: { ...save, ledger: [...save.ledger, entry] }, ...r };
+  const next = grantQuestRewards({ ...save, ledger: [...save.ledger, entry] }, stonesForQuest(q.baseXp), STAMINA_PER_CLAIM);
+  return { save: next, ...r };
 }
 
 export function claimWeekly(save: SaveData, day: DayKey, code: WeeklyQuestCode, now = new Date()): ClaimResult {
@@ -318,7 +322,8 @@ export function claimWeekly(save: SaveData, day: DayKey, code: WeeklyQuestCode, 
     attribute: null,
     at: now.toISOString(),
   };
-  return { save: { ...save, ledger: [...save.ledger, entry] }, granted: q.baseXp, multiplier: 1, capped: false };
+  const next = grantQuestRewards({ ...save, ledger: [...save.ledger, entry] }, stonesForQuest(q.baseXp), 0);
+  return { save: next, granted: q.baseXp, multiplier: 1, capped: false };
 }
 
 export function markLevelSeen(save: SaveData): SaveData {
@@ -380,11 +385,12 @@ const OLD_AVATAR_MAP: Record<string, Player['avatar']> = {
 };
 
 function migrate(data: SaveData): SaveData {
-  if (data.player && !VALID_AVATARS.includes(data.player.avatar)) {
-    const avatar = OLD_AVATAR_MAP[data.player.avatar] ?? 'sword';
-    return { ...data, player: { ...data.player, avatar } };
+  let next = data;
+  if (next.player && !VALID_AVATARS.includes(next.player.avatar)) {
+    const avatar = OLD_AVATAR_MAP[next.player.avatar] ?? 'sword';
+    next = { ...next, player: { ...next.player, avatar } };
   }
-  return data;
+  return migrateInventory(next);
 }
 
 const STORAGE_KEY = 'iwlu-save-v1';

@@ -3,7 +3,15 @@ import type {
   DataSource,
   DayKey,
   Difficulty,
+  GearSlot,
+  HerbId,
+  LotCategory,
+  LotRank,
   MealId,
+  MealSlot,
+  Nutrients,
+  PillId,
+  RootId,
   Workout,
   WorkoutType,
 } from '../../packages/game-core/index.ts';
@@ -20,6 +28,8 @@ export interface Player {
   difficulty: Difficulty;
   timeZone: string;
   safetyAcknowledged: boolean;
+  /** 測靈根結果（v0.7 起） */
+  root?: RootId;
 }
 
 export interface Cup {
@@ -37,6 +47,14 @@ export interface DayLog {
   restTicketUsed: boolean;
   /** 按時用膳打卡時間（v0.4 起；舊存檔可能沒有） */
   meals?: Partial<Record<MealId, string>>;
+  /** 今日道心籤（v0.7 起） */
+  lot?: { category: LotCategory; index: number; rank: LotRank };
+  /** 修行日誌：心境 1–5 與一句話 */
+  journal?: { mood: number; text: string; at: string };
+  /** 今日已播放「功課圓滿」慶祝 */
+  celebrated?: boolean;
+  /** 今日已服用的丹藥 */
+  pillTaken?: PillId;
 }
 
 /** GPS 行功軌跡（只存在本機） */
@@ -55,7 +73,8 @@ export interface Track {
   name?: string;
 }
 
-export type LedgerKind = 'cup' | 'daily' | 'weekly';
+/** bonus = 築基里程碑、丹藥等額外修為 */
+export type LedgerKind = 'cup' | 'daily' | 'weekly' | 'bonus';
 
 export interface LedgerEntry {
   id: string;
@@ -82,6 +101,77 @@ export interface SaveData {
   cloud?: CloudState;
   /** GPS 行功軌跡，最多保留 30 筆（v0.4 起） */
   tracks?: Track[];
+  /** 六十六日築基（v0.7 起） */
+  path?: PathState;
+  /** 靈石、精力、靈草、丹藥、法寶（v0.7 起） */
+  inv?: Inventory;
+  /** 餐點與營養紀錄（v0.7 起） */
+  food?: FoodEntry[];
+}
+
+export interface PathState {
+  /** 這一輪的起始日 */
+  start: DayKey;
+  /** 第幾輪閉關（1 起） */
+  round: number;
+  /** 逆天模式 */
+  hard: boolean;
+  /** 逆天模式從哪天開始追究缺席 */
+  hardSince?: DayKey;
+  /** 已領取的里程碑（日數） */
+  claimed: number[];
+  /** 洗髓丹護道過的缺席日 */
+  forgiven: DayKey[];
+  /** 尚未顯示給玩家的通知（例如逆天模式重頭） */
+  notice?: string;
+  /** 已完成的輪數 */
+  finishedRounds: number;
+}
+
+export interface Plot {
+  herb: HerbId;
+  plantedAt: string;
+}
+
+export interface ActiveExpedition {
+  id: string;
+  start: string;
+  end: string;
+  loot: {
+    stones: number;
+    herbs: Partial<Record<HerbId, number>>;
+    seeds: Partial<Record<HerbId, number>>;
+    story: string;
+  };
+}
+
+export interface Inventory {
+  stones: number;
+  stamina: number;
+  herbs: Partial<Record<HerbId, number>>;
+  seeds: Partial<Record<HerbId, number>>;
+  pills: Partial<Record<PillId, number>>;
+  gear: string[];
+  equipped: Partial<Record<GearSlot, string>>;
+  plots: (Plot | null)[];
+  expedition: ActiveExpedition | null;
+  /** 最近的歷練與煉丹紀事（新的在前） */
+  log: { at: string; text: string }[];
+}
+
+export interface FoodEntry extends Nutrients {
+  id: string;
+  day: DayKey;
+  slot: MealSlot;
+  at: string;
+  name: string;
+  items: { name: string; portion: string }[];
+  vitamins: string;
+  minerals: string;
+  note: string;
+  source: 'photo' | 'label' | 'manual';
+  /** 小縮圖（data URL，約 10 KB） */
+  thumb?: string;
 }
 
 export interface CloudState {
