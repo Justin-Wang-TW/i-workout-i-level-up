@@ -124,16 +124,19 @@ export function parseSyncPayload(
   if (date > addDays(today, 1)) return { ok: false, error: '不接受未來的日期' };
   if (date < addDays(today, -7)) return { ok: false, error: '只接受 7 天內的資料' };
 
-  const steps = b.steps === undefined ? 0 : Math.round(toNumber(b.steps));
-  if (!Number.isFinite(steps) || steps < 0 || steps > 100_000) return { ok: false, error: '步數不合理' };
+  // 捷徑在「健康」沒有資料時會送出空值（例如沒戴 Apple Watch 就沒有運動分鐘數），一律當作 0
+  const blank = (v: unknown) => v === undefined || v === null || (typeof v === 'string' && v.trim() === '');
+  const shown = (v: unknown) => String(typeof v === 'string' ? v : JSON.stringify(v)).slice(0, 20);
+  const steps = blank(b.steps) ? 0 : Math.round(toNumber(b.steps));
+  if (!Number.isFinite(steps) || steps < 0 || steps > 100_000) return { ok: false, error: `步數不合理（收到：${shown(b.steps)}）` };
 
-  let km = b.walkRunKm === undefined ? 0 : toNumber(b.walkRunKm);
+  let km = blank(b.walkRunKm) ? 0 : toNumber(b.walkRunKm);
   if (Number.isFinite(km) && km > 300) km = km / 1000; // 捷徑若送出公尺，換算成公里
-  if (!Number.isFinite(km) || km < 0 || km > 300) return { ok: false, error: '距離不合理' };
+  if (!Number.isFinite(km) || km < 0 || km > 300) return { ok: false, error: `距離不合理（收到：${shown(b.walkRunKm)}）` };
 
-  const exerciseMin = b.exerciseMin === undefined ? 0 : Math.round(toNumber(b.exerciseMin));
+  const exerciseMin = blank(b.exerciseMin) ? 0 : Math.round(toNumber(b.exerciseMin));
   if (!Number.isFinite(exerciseMin) || exerciseMin < 0 || exerciseMin > 1440) {
-    return { ok: false, error: '運動時間不合理' };
+    return { ok: false, error: `運動時間不合理（收到：${shown(b.exerciseMin)}）` };
   }
 
   const workouts: ParsedSync['workouts'] = [];

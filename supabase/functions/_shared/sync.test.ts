@@ -84,6 +84,22 @@ describe('解析捷徑資料', () => {
     expect(parseSyncPayload({ steps: -5 }, NOW).ok).toBe(false);
   });
 
+  it('健康沒有資料時送來的空值當作 0（例如沒戴 Apple Watch）', () => {
+    const r = parseSyncPayload({ steps: '6,512', walkRunKm: '4.3', exerciseMin: '' }, NOW);
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.data.steps).toBe(6512);
+      expect(r.data.exerciseMin).toBe(0);
+    }
+    expect(parseSyncPayload({ steps: null, walkRunKm: ' ', exerciseMin: null }, NOW).ok).toBe(true);
+  });
+
+  it('錯誤訊息附上收到的值，方便檢查欄位是否對錯', () => {
+    const r = parseSyncPayload({ steps: 1, exerciseMin: 8321 }, NOW);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error.includes('8321')).toBe(true);
+  });
+
   it('距離若是公尺會換算成公里', () => {
     const r = parseSyncPayload({ steps: 1, walkRunKm: 5200 }, NOW);
     expect(r.ok && r.data.walkRunKm).toBe(5.2);
