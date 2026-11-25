@@ -319,6 +319,53 @@ function GearOnBody({ gear, hairMale, animate }: { gear: Partial<Record<GearSlot
           ))}
         </g>
       )}
+      {gear.robe === 'herb_robe' && (
+        <g fill="#7fd99a" opacity="0.8">
+          {[
+            [70, 118, -30], [130, 118, 30], [86, 132, -10], [114, 132, 10], [64, 164, -50], [136, 164, 50], [100, 170, 0],
+          ].map(([x, y, r], i) => (
+            <path key={i} d="M0 0 q4 -6 0 -12 q-4 6 0 12 Z" transform={`translate(${x} ${y}) rotate(${r})`} />
+          ))}
+        </g>
+      )}
+      {gear.head === 'frost_crown' && (
+        <g>
+          <path d="M88 35 L90 23 L94 29 L97 17 L100 26 L103 17 L106 29 L110 23 L112 35 Z" fill="#d8f2ff" stroke="#7cc8ff" strokeWidth="0.9" />
+          <circle cx="100" cy="30" r="2" fill="#5bb8e8" />
+          {animate && (
+            <circle cx="97" cy="18" r="1.2" fill="#ffffff">
+              <animate attributeName="opacity" values="0;1;0" dur="2.6s" repeatCount="indefinite" />
+            </circle>
+          )}
+        </g>
+      )}
+      {(gear.feet === 'cloud_boots' || gear.feet === 'flame_boots') && (
+        <g>
+          {[
+            { x: 60, r: -14 },
+            { x: 140, r: 14 },
+          ].map((b) => (
+            <g key={b.x} transform={`translate(${b.x} 171) rotate(${b.r})`}>
+              <path d="M-11 -3 Q-12 5 -4 6 L10 6 Q14 5 12 0 L6 -4 Z" fill={gear.feet === 'cloud_boots' ? '#e8f7ff' : '#c0392b'} stroke={gear.feet === 'cloud_boots' ? '#7cc8ff' : '#f2c94c'} strokeWidth="0.9" />
+              {gear.feet === 'cloud_boots' ? (
+                <path d="M-8 3 q3 -3 6 0 q3 -3 6 0" stroke="#7cc8ff" strokeWidth="0.9" fill="none" />
+              ) : (
+                <path d="M-6 -1 q2 -5 4 0 q2 -6 4 0" stroke="#f2c94c" strokeWidth="0.9" fill="none" />
+              )}
+            </g>
+          ))}
+          {gear.feet === 'cloud_boots' && animate && (
+            <g fill="#e8f7ff" opacity="0.5">
+              <ellipse cx="54" cy="180" rx="10" ry="3">
+                <animate attributeName="opacity" values="0.2;0.6;0.2" dur="3s" repeatCount="indefinite" />
+              </ellipse>
+              <ellipse cx="146" cy="180" rx="10" ry="3">
+                <animate attributeName="opacity" values="0.6;0.2;0.6" dur="3s" repeatCount="indefinite" />
+              </ellipse>
+            </g>
+          )}
+        </g>
+      )}
       {gear.head === 'jade_pin' && (
         <g>
           <line x1={hairMale ? 89 : 90} y1={hairMale ? 31 : 33} x2={hairMale ? 112 : 111} y2={hairMale ? 40 : 40} stroke="#5fd4b0" strokeWidth="2.4" strokeLinecap="round" />

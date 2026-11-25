@@ -35,6 +35,8 @@ import {
   buySeed,
   canCraft,
   claimMilestone,
+  craftGear,
+  hasGearMaterials,
   claimableMilestones,
   collectExpedition,
   craftPill,
@@ -55,6 +57,7 @@ import {
 } from '../state/cultivation.ts';
 import { totalXp } from '../state/game.ts';
 import { getInv } from '../state/inventory.ts';
+import { RestPanel } from './Rest.tsx';
 import { RootQuiz } from './RootQuiz.tsx';
 
 type Section = 'path' | 'skills' | 'journey' | 'garden' | 'gear';
@@ -158,7 +161,9 @@ function PathSection() {
                   {planStage(p.dayNo).name}期・第 <b className="mono">{p.dayNo}</b> 日
                 </div>
                 <div className="muted">{planStage(p.dayNo).intro}</div>
-                <div className={`path-today ${p.todayDone ? 'ok' : ''}`}>{p.todayDone ? '✔ 今日功課已圓滿' : '◇ 今日：喝水達標＋任一運動'}</div>
+                <div className={`path-today ${p.todayDone ? 'ok' : ''}`}>
+                  {p.todayDone ? '✔ 今日功課已圓滿' : p.pausedToday ? '☯ 閉關中：今日不前進也不算缺席' : '◇ 今日：喝水達標＋任一運動'}
+                </div>
               </div>
             </div>
             {!p.finished && <p className="path-tip">今日心法：{tipForDay(p.dayNo)}</p>}
@@ -255,6 +260,8 @@ function PathSection() {
           )}
         </Panel>
       )}
+
+      <RestPanel />
 
       <Panel title="靈根">
         {root ? (
@@ -647,10 +654,32 @@ function GearSection() {
                   {g.name} <span className="muted">・{GEAR_SLOT_LABEL[g.slot]}</span>
                 </div>
                 <div className="muted">{g.desc}</div>
+                {g.recipe && !owned && (
+                  <div className="gear-recipe">
+                    煉器材料：
+                    {Object.entries(g.recipe)
+                      .map(([h, n]) => `${herbById(h as HerbId).name}×${n}`)
+                      .join('、')}
+                    ＋靈石 {g.price}
+                  </div>
+                )}
               </div>
               {owned ? (
                 <button className="btn btn-sm btn-ghost" onClick={() => update((s) => equipGear(s, g.slot, on ? null : g.id))}>
                   {on ? '卸下' : '裝備'}
+                </button>
+              ) : ok && g.recipe ? (
+                <button
+                  className="btn btn-sm btn-primary"
+                  disabled={!hasGearMaterials(save, g.id)}
+                  onClick={() => {
+                    const r = craftGear(save, g.id);
+                    if (r.error) return notify('無法煉器', r.error);
+                    update((s) => craftGear(s, g.id).save);
+                    notify(`【煉器成功】${g.name}`, g.desc);
+                  }}
+                >
+                  煉器
                 </button>
               ) : ok ? (
                 <button

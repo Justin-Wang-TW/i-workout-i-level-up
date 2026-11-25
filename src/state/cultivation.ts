@@ -5,7 +5,13 @@ import {
   GEAR,
   HARD_MODE_REWARD,
   HARD_MODE_STONE_LOSS,
+  JOURNAL_MAX_CHARS,
   JOURNAL_STONES,
+  PAUSE_GAP_DAYS,
+  PAUSE_MAX_DAYS,
+  activePause,
+  diffDays,
+  isDayPaused,
   PILLS,
   PILLS_PER_DAY,
   PLAN_MILESTONES,
@@ -84,12 +90,14 @@ export function startPath(save: SaveData, today: DayKey, hard = false): SaveData
 function dayStateFor(save: SaveData) {
   const goal = save.player?.waterGoalMl ?? GAME_CONFIG.water.defaultGoalMl;
   const forgiven = new Set(save.path?.forgiven ?? []);
-  return (day: DayKey): 'done' | 'rest' | 'none' => {
+  return (day: DayKey): 'done' | 'rest' | 'pause' | 'none' => {
     const log = save.days[day];
     if (forgiven.has(day)) return 'rest';
-    if (!log) return 'none';
-    if (log.restTicketUsed) return 'rest';
-    return dayCountsForStreak(toActivity(save, day), goal) ? 'done' : 'none';
+    if (log?.restTicketUsed) return 'rest';
+    if (log && dayCountsForStreak(toActivity(save, day), goal)) return 'done';
+    // 閉關期間：當天若仍完成功課就照常前進，否則不前進也不算缺席
+    if (isDayPaused(save.pauses, day)) return 'pause';
+    return 'none';
   };
 }
 
@@ -180,6 +188,44 @@ export function claimMilestone(save: SaveData, today: DayKey, day: number, now =
   return { save: next, xp, stones };
 }
 
+// ───────── 閉關（暫停連修） ─────────
+
+export function canStartPause(save: SaveData, today: DayKey): { ok: boolean; reason?: string } {
+  const pauses = save.pauses ?? [];
+  if (activePause(pauses, today)) return { ok: false, reason: '目前已在閉關中' };
+  const future = pauses.find((p) => p.start > today);
+  if (future) return { ok: false, reason: `已排定 ${future.start} 起閉關` };
+  const last = [...pauses].sort((a, b) => (a.end < b.end ? 1 : -1))[0];
+  if (last && diffDays(last.end, today) <= PAUSE_GAP_DAYS) {
+    return { ok: false, reason: `上次閉關剛結束，出關修煉 ${PAUSE_GAP_DAYS} 天後才能再閉關` };
+  }
+  return { ok: true };
+}
+
+/** 從 start 起閉關 days 天（start 只能是今天或明天） */
+export function startPause(save: SaveData, today: DayKey, start: DayKey, days: number, reason: string): { save: SaveData; error?: string } {
+  const check = canStartPause(save, today);
+  if (!check.ok) return { save, error: check.reason };
+  if (start < today || diffDays(today, start) > 1) return { save, error: '只能從今天或明天開始閉關' };
+  const n = Math.round(days);
+  if (n < 1 || n > PAUSE_MAX_DAYS) return { save, error: `閉關天數為 1–${PAUSE_MAX_DAYS} 天` };
+  const range = { start, end: addDays(start, n - 1), reason: reason.slice(0, 20) || '其他' };
+  return { save: { ...save, pauses: [...(save.pauses ?? []), range].slice(-30) } };
+}
+
+/** 提前出關：今天起恢復計算（今天之前的閉關日仍保留） */
+export function endPause(save: SaveData, today: DayKey): SaveData {
+  const pauses = save.pauses ?? [];
+  const next = pauses
+    .map((p) => {
+      if (p.start >= today) return null; // 還沒開始或今天才開始 → 取消
+      if (p.end >= today) return { ...p, end: addDays(today, -1) };
+      return p;
+    })
+    .filter((p): p is NonNullable<typeof p> => p !== null);
+  return { ...save, pauses: next };
+}
+
 // ───────── 本命丹火（連修） ─────────
 
 export function flameTier(streak: number): { name: string; color: string; size: number } {
@@ -212,9 +258,14 @@ export function drawDailyLot(save: SaveData, day: DayKey, rng: () => number = Ma
   return withInv(next, (i) => ({ ...i, stones: i.stones + lot.stones }));
 }
 
-export function writeJournal(save: SaveData, day: DayKey, mood: number, text: string, now = new Date()): SaveData {
+export function writeJournal(save: SaveData, day: DayKey, mood: number, text: string, now = new Date(), prompt?: string): SaveData {
   const first = !getDayLog(save, day).journal;
-  const entry = { mood: Math.max(1, Math.min(5, Math.round(mood))), text: text.trim().slice(0, 200), at: now.toISOString() };
+  const entry = {
+    mood: Math.max(1, Math.min(5, Math.round(mood))),
+    text: text.trim().slice(0, JOURNAL_MAX_CHARS),
+    at: now.toISOString(),
+    ...(prompt ? { prompt } : {}),
+  };
   const next = withDayLog(save, day, (l) => ({ ...l, journal: entry }));
   return first ? withInv(next, (i) => ({ ...i, stones: i.stones + JOURNAL_STONES })) : next;
 }
@@ -259,12 +310,40 @@ export function buyGear(save: SaveData, id: string): { save: SaveData; error?: s
   const g = gearById(id);
   const inv = getInv(save);
   if (!g) return { save, error: '查無此法寶' };
+  if (g.recipe) return { save, error: '此法寶需用靈草煉器' };
   if (inv.gear.includes(id)) return { save, error: '已擁有' };
   if (!meetsRealm(save, g.realm)) return { save, error: '境界不足' };
   if (inv.stones < g.price) return { save, error: '靈石不足' };
   const next = withInv(save, (i) =>
     addLog({ ...i, stones: i.stones - g.price, gear: [...i.gear, id], equipped: { ...i.equipped, [g.slot]: id } }, `購得法寶「${g.name}」。`),
   );
+  return { save: next };
+}
+
+export function hasGearMaterials(save: SaveData, id: string): boolean {
+  const g = gearById(id);
+  const inv = getInv(save);
+  if (!g?.recipe) return false;
+  return inv.stones >= g.price && Object.entries(g.recipe).every(([h, n]) => (inv.herbs[h as HerbId] ?? 0) >= (n ?? 0));
+}
+
+/** 煉器：消耗靈草與靈石打造法寶（必定成功） */
+export function craftGear(save: SaveData, id: string, now = new Date()): { save: SaveData; error?: string } {
+  const g = gearById(id);
+  const inv = getInv(save);
+  if (!g || !g.recipe) return { save, error: '此法寶無法煉器' };
+  if (inv.gear.includes(id)) return { save, error: '已擁有' };
+  if (!meetsRealm(save, g.realm)) return { save, error: '境界不足' };
+  if (!hasGearMaterials(save, id)) return { save, error: '材料或靈石不足' };
+  const next = withInv(save, (i) => {
+    let herbs = i.herbs;
+    for (const [h, n] of Object.entries(g.recipe!)) herbs = addCount(herbs, h as HerbId, -(n ?? 0));
+    return addLog(
+      { ...i, herbs, stones: i.stones - g.price, gear: [...i.gear, id], equipped: { ...i.equipped, [g.slot]: id } },
+      `開爐煉器，煉成法寶「${g.name}」。`,
+      now,
+    );
+  });
   return { save: next };
 }
 
@@ -465,3 +544,11 @@ export function foodOn(save: SaveData, day: DayKey): FoodEntry[] {
 }
 
 export { GEAR };
+
+/** 日誌簿：所有日誌，新的在前 */
+export function allJournals(save: SaveData) {
+  return Object.entries(save.days)
+    .filter(([, log]) => !!log.journal)
+    .map(([day, log]) => ({ day, ...log.journal! }))
+    .sort((a, b) => (a.day < b.day ? 1 : -1));
+}

@@ -4,7 +4,8 @@ import { CULTIVATORS, Cultivator } from '../components/Cultivator.tsx';
 import { Panel } from '../components/ui.tsx';
 import { ShortcutLink } from './ShortcutLink.tsx';
 import { useGame } from '../state/GameContext.tsx';
-import { applyRestTicket, getDayLog, parseImport, restTicketsLeft, updatePlayer } from '../state/game.ts';
+import { parseImport, updatePlayer } from '../state/game.ts';
+import { RestPanel } from './Rest.tsx';
 import { EMPTY_SAVE } from '../state/types.ts';
 
 export function Settings() {
@@ -12,8 +13,6 @@ export function Settings() {
   const player = save.player!;
   const [goal, setGoal] = useState(String(player.waterGoalMl));
   const [importText, setImportText] = useState('');
-  const ticketsLeft = restTicketsLeft(save, today);
-  const usedToday = getDayLog(save, today).restTicketUsed;
 
   const saveGoal = () => {
     const w = GAME_CONFIG.water;
@@ -109,19 +108,7 @@ export function Settings() {
         </div>
       </Panel>
 
-      <Panel title="休養符" right={<span className="muted">本週剩 {ticketsLeft} 張</span>}>
-        <p className="hint">身體不適或需要休息時使用，今日仍算連續修煉。每週一補 1 張。</p>
-        <button
-          className="btn btn-ghost btn-block"
-          disabled={usedToday || ticketsLeft <= 0}
-          onClick={() => {
-            update((s) => applyRestTicket(s, today));
-            notify('已使用休養符', '養精蓄銳，明日再修');
-          }}
-        >
-          {usedToday ? '今日已使用' : '今日使用休養符'}
-        </button>
-      </Panel>
+      <RestPanel />
 
       <ShortcutLink />
 

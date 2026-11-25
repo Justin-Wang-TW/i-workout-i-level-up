@@ -14,6 +14,7 @@ import {
   mealWindowState,
   stonesForQuest,
   STAMINA_PER_CLAIM,
+  isDayPaused,
   type DailyQuestCode,
   type DayActivity,
   type MealId,
@@ -81,7 +82,9 @@ export function attributes(save: SaveData): Record<Attribute, number> {
 
 export function streakOn(save: SaveData, day: DayKey): number {
   const goal = save.player?.waterGoalMl ?? GAME_CONFIG.water.defaultGoalMl;
-  return currentStreak((k) => (save.days[k] ? toActivity(save, k) : undefined), day, goal);
+  return currentStreak((k) => (save.days[k] ? toActivity(save, k) : undefined), day, goal, 400, (k) =>
+    isDayPaused(save.pauses, k),
+  );
 }
 
 export function isClaimed(save: SaveData, ref: string): boolean {

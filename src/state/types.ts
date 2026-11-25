@@ -8,6 +8,7 @@ import type {
   LotCategory,
   LotRank,
   MealId,
+  PauseRange,
   MealSlot,
   Nutrients,
   PillId,
@@ -50,7 +51,7 @@ export interface DayLog {
   /** 今日道心籤（v0.7 起） */
   lot?: { category: LotCategory; index: number; rank: LotRank };
   /** 修行日誌：心境 1–5 與一句話 */
-  journal?: { mood: number; text: string; at: string };
+  journal?: { mood: number; text: string; at: string; prompt?: string };
   /** 今日已播放「功課圓滿」慶祝 */
   celebrated?: boolean;
   /** 今日已服用的丹藥 */
@@ -107,6 +108,8 @@ export interface SaveData {
   inv?: Inventory;
   /** 餐點與營養紀錄（v0.7 起） */
   food?: FoodEntry[];
+  /** 閉關暫停期間（v0.8 起） */
+  pauses?: PauseRange[];
 }
 
 export interface PathState {

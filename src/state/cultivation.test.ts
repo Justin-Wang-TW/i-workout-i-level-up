@@ -11,8 +11,15 @@ import {
   sanitizeEstimate,
   macroShare,
   scaleNutrients,
+  promptForDay,
+  REFLECTION_PROMPTS,
 } from '../../packages/game-core/index.ts';
 import {
+  allJournals,
+  canStartPause,
+  craftGear,
+  endPause,
+  startPause,
   addFood,
   buyGear,
   buySeed,
@@ -32,7 +39,7 @@ import {
   takePill,
   writeJournal,
 } from './cultivation.ts';
-import { addCup, claimDaily, completeBodyweight, createPlayer, totalXp } from './game.ts';
+import { addCup, claimDaily, completeBodyweight, createPlayer, streakOn, totalXp } from './game.ts';
 import { getInv } from './inventory.ts';
 import type { SaveData } from './types.ts';
 
@@ -268,5 +275,93 @@ describe('舊存檔升級', () => {
     const old = { ...newSave(), inv: undefined, ledger: [{ id: 'a', day: D0, kind: 'daily' as const, ref: 'x', reason: '', amount: 40, multiplier: 1, attribute: null, at: '' }] };
     const migrated = parseImport(JSON.stringify(old))!;
     expect(getInv(migrated).stones).toBe(4);
+  });
+});
+
+describe('閉關（暫停連修）', () => {
+  it('閉關期間連修不中斷、也不增加', () => {
+    let s = newSave();
+    s = completeDay(s, D0);
+    s = completeDay(s, addDays(D0, 1));
+    // D0+2 起閉關 3 天
+    s = startPause(s, addDays(D0, 2), addDays(D0, 2), 3, '出遊').save;
+    expect(streakOn(s, addDays(D0, 4))).toBe(2);
+    // 出關後第一天完成 → 3
+    s = completeDay(s, addDays(D0, 5));
+    expect(streakOn(s, addDays(D0, 5))).toBe(3);
+  });
+
+  it('沒有閉關時，缺一天就中斷', () => {
+    let s = completeDay(newSave(), D0);
+    s = completeDay(s, addDays(D0, 2));
+    expect(streakOn(s, addDays(D0, 2))).toBe(1);
+  });
+
+  it('築基在閉關期間不前進、不算缺席；逆天模式不崩毀', () => {
+    let s = startPath(newSave(), D0, true);
+    s = completeDay(s, D0);
+    s = startPause(s, addDays(D0, 1), addDays(D0, 1), 2, '生病休養').save;
+    s = { ...s, inv: { ...getInv(s), stones: 100 } };
+    const today = addDays(D0, 3);
+    const after = settlePath(s, today);
+    expect(after.path!.start).toBe(D0);
+    expect(getInv(after).stones).toBe(100);
+    const p = pathProgress(after, today)!;
+    expect(p.completed).toBe(1);
+    expect(p.firstMiss).toBe(null);
+  });
+
+  it('閉關期間照常完成功課仍會前進', () => {
+    let s = startPath(newSave(), D0);
+    s = startPause(s, D0, D0, 3, '其他').save;
+    s = completeDay(s, addDays(D0, 1));
+    expect(pathProgress(s, addDays(D0, 2))!.completed).toBe(1);
+  });
+
+  it('限制：最多 14 天、只能今天或明天開始、間隔 3 天、提前出關', () => {
+    const s = newSave();
+    expect(startPause(s, D0, D0, 15, 'x').error?.includes('1–14')).toBe(true);
+    expect(startPause(s, D0, addDays(D0, 2), 3, 'x').error?.includes('今天或明天')).toBe(true);
+    let p = startPause(s, D0, D0, 5, '出遊').save;
+    expect(canStartPause(p, addDays(D0, 1)).ok).toBe(false);
+    p = endPause(p, addDays(D0, 2));
+    expect(p.pauses![0].end).toBe(addDays(D0, 1));
+    expect(canStartPause(p, addDays(D0, 3)).ok).toBe(false);
+    expect(canStartPause(p, addDays(D0, 5)).ok).toBe(true);
+    // 今天才開始的閉關，出關＝取消
+    const q = endPause(startPause(s, D0, D0, 3, 'x').save, D0);
+    expect(q.pauses).toHaveLength(0);
+  });
+});
+
+describe('每日問心與日誌簿', () => {
+  it('同一天固定同一題，題目在題庫內', () => {
+    expect(promptForDay(D0)).toBe(promptForDay(D0));
+    expect(REFLECTION_PROMPTS.includes(promptForDay(addDays(D0, 9)))).toBe(true);
+  });
+
+  it('日誌保存題目，日誌簿依日期新到舊', () => {
+    let s = writeJournal(newSave(), D0, 3, '第一天', new Date(), '題目A');
+    s = writeJournal(s, addDays(D0, 1), 4, '第二天');
+    const list = allJournals(s);
+    expect(list).toHaveLength(2);
+    expect(list[0].day).toBe(addDays(D0, 1));
+    expect(list[1].prompt).toBe('題目A');
+  });
+});
+
+describe('煉器', () => {
+  it('材料足夠才能煉；煉成自動裝備；不能用買的', () => {
+    const base = newSave();
+    expect(craftGear(base, 'cloud_boots').error).toBe('材料或靈石不足');
+    expect(buyGear({ ...base, inv: { ...getInv(base), stones: 999 } }, 'cloud_boots').error?.includes('煉器')).toBe(true);
+    const rich: SaveData = { ...base, inv: { ...getInv(base), stones: 50, herbs: { calm_grass: 5 } } };
+    const r = craftGear(rich, 'cloud_boots');
+    expect(r.error).toBeUndefined();
+    expect(getInv(r.save).equipped.feet).toBe('cloud_boots');
+    expect(getInv(r.save).herbs.calm_grass).toBe(1);
+    expect(getInv(r.save).stones).toBe(20);
+    expect(craftGear(r.save, 'cloud_boots').error).toBe('已擁有');
+    expect(craftGear(rich, 'flame_boots').error).toBe('境界不足');
   });
 });

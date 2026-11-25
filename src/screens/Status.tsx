@@ -3,6 +3,7 @@ import {
   ATTRIBUTE_LABEL,
   GAME_CONFIG,
   PLAN_DAYS,
+  isDayPaused,
   levelInfo,
   planStage,
   streakMultiplier,
@@ -62,6 +63,7 @@ export function Status({
   const plan = pathProgress(save, today);
   const milestones = claimableMilestones(save, today).length;
   const back = inv.expedition && Date.parse(inv.expedition.end) <= Date.now();
+  const paused = isDayPaused(save.pauses, today);
 
   const drink = () => {
     const before = day.waterMl;
@@ -118,7 +120,7 @@ export function Status({
               本命丹火・<span style={{ color: flame.color }}>{flame.name}</span>
             </div>
             <div className="muted">
-              連燃 {streak} 日・{mult > 1 ? `修為 ×${mult}` : '連修 3 日起修為加成'}
+              {paused ? `閉關中・丹火溫養不熄（連燃 ${streak} 日）` : `連燃 ${streak} 日・${mult > 1 ? `修為 ×${mult}` : '連修 3 日起修為加成'}`}
             </div>
           </div>
           <div className="wallet-mini mono" title="靈石／精力">
@@ -141,7 +143,7 @@ export function Status({
               築基・{planStage(plan.dayNo).name}期 第 <b className="mono">{plan.dayNo}</b> / {PLAN_DAYS} 日
               {save.path.hard && <span className="tag">逆天</span>}
             </span>
-            <span className={plan.todayDone ? 'ok' : 'muted'}>{plan.todayDone ? '今日圓滿' : '今日未成'} ›</span>
+            <span className={plan.todayDone ? 'ok' : 'muted'}>{plan.todayDone ? '今日圓滿' : plan.pausedToday ? '閉關中' : '今日未成'} ›</span>
           </div>
           <ProgressBar value={plan.completed} max={PLAN_DAYS} tone="gold" />
           {!plan.finished && <div className="path-mini-tip">{tipForDay(plan.dayNo)}</div>}

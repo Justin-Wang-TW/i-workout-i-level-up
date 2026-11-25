@@ -6,16 +6,24 @@ import { dayCountsForStreak, type DayActivity } from './quests.ts';
 /**
  * 目前連續天數。
  * 今天已達成 → 從今天往回數；今天還沒達成 → 從昨天往回數（連續紀錄仍然有效）。
+ * 閉關（暫停）的日子跳過：不計入天數，也不會中斷連修。
  */
 export function currentStreak(
   getDay: (key: DayKey) => DayActivity | undefined,
   today: DayKey,
   waterGoalMl: number,
   maxLookback = 400,
+  isPaused: (key: DayKey) => boolean = () => false,
 ): number {
-  let cursor = dayCountsForStreak(getDay(today), waterGoalMl) ? today : addDays(today, -1);
+  const counts = (k: DayKey) => dayCountsForStreak(getDay(k), waterGoalMl);
+  let cursor = !isPaused(today) && counts(today) ? today : addDays(today, -1);
   let count = 0;
-  while (count < maxLookback && dayCountsForStreak(getDay(cursor), waterGoalMl)) {
+  for (let steps = 0; steps < maxLookback * 2 && count < maxLookback; steps++) {
+    if (isPaused(cursor)) {
+      cursor = addDays(cursor, -1);
+      continue;
+    }
+    if (!counts(cursor)) break;
     count += 1;
     cursor = addDays(cursor, -1);
   }

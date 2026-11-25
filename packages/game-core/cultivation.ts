@@ -41,8 +41,8 @@ export const HARD_MODE_STONE_LOSS = 0.2;
 
 export interface PlanDay {
   day: DayKey;
-  /** 'done' = 功課圓滿；'rest' = 用休養符；'miss' = 缺席；'today' = 今天尚未完成 */
-  state: 'done' | 'rest' | 'miss' | 'today';
+  /** 'done' = 功課圓滿；'rest' = 用休養符；'pause' = 閉關暫停（不前進也不算缺席）；'miss' = 缺席；'today' = 今天尚未完成 */
+  state: 'done' | 'rest' | 'pause' | 'miss' | 'today';
 }
 
 export interface PlanProgress {
@@ -51,6 +51,8 @@ export interface PlanProgress {
   /** 今天是第幾日（今天已完成時 = completed） */
   dayNo: number;
   todayDone: boolean;
+  /** 今天在閉關暫停中 */
+  pausedToday: boolean;
   /** 自上次重新起步以來，每一天的狀態 */
   days: PlanDay[];
   /** 逆天模式下，第一個缺席的日子（需要結算） */
@@ -65,7 +67,7 @@ export interface PlanProgress {
 export function planProgress(
   start: DayKey,
   today: DayKey,
-  dayState: (day: DayKey) => 'done' | 'rest' | 'none',
+  dayState: (day: DayKey) => 'done' | 'rest' | 'pause' | 'none',
 ): PlanProgress {
   const span = Math.max(0, diffDays(start, today));
   const days: PlanDay[] = [];
@@ -77,6 +79,8 @@ export function planProgress(
     if (s === 'done' || s === 'rest') {
       completed += 1;
       days.push({ day, state: s });
+    } else if (s === 'pause') {
+      days.push({ day, state: 'pause' });
     } else if (day === today) {
       days.push({ day, state: 'today' });
     } else {
@@ -84,12 +88,14 @@ export function planProgress(
       if (!firstMiss) firstMiss = day;
     }
   }
-  const todayDone = days.some((d) => d.day === today && d.state !== 'today');
+  const todayDone = days.some((d) => d.day === today && (d.state === 'done' || d.state === 'rest'));
+  const pausedToday = days.some((d) => d.day === today && d.state === 'pause');
   const finished = completed >= PLAN_DAYS;
   return {
     completed,
     dayNo: finished ? PLAN_DAYS : todayDone ? completed : completed + 1,
     todayDone,
+    pausedToday,
     days,
     firstMiss,
     finished,
@@ -124,6 +130,30 @@ export const DAILY_TIPS = [
 
 export function tipForDay(dayNo: number): string {
   return DAILY_TIPS[(Math.max(1, dayNo) - 1) % DAILY_TIPS.length];
+}
+
+// ───────── 閉關（暫停） ─────────
+
+/** 單次閉關最多幾天 */
+export const PAUSE_MAX_DAYS = 14;
+/** 兩次閉關之間至少要修煉幾天 */
+export const PAUSE_GAP_DAYS = 3;
+
+export interface PauseRange {
+  start: DayKey;
+  /** 含當天 */
+  end: DayKey;
+  reason: string;
+}
+
+export const PAUSE_REASONS = ['出遊', '生病休養', '工作繁忙', '其他'];
+
+export function isDayPaused(pauses: PauseRange[] | undefined, day: DayKey): boolean {
+  return (pauses ?? []).some((p) => day >= p.start && day <= p.end);
+}
+
+export function activePause(pauses: PauseRange[] | undefined, today: DayKey): PauseRange | undefined {
+  return (pauses ?? []).find((p) => today >= p.start && today <= p.end);
 }
 
 // ───────── 測靈根（入門問心） ─────────
@@ -311,12 +341,13 @@ export function skillLevel(points: number): { level: number; into: number; need:
 
 // ───────── 法寶 ─────────
 
-export type GearSlot = 'head' | 'robe' | 'waist' | 'relic';
+export type GearSlot = 'head' | 'robe' | 'waist' | 'feet' | 'relic';
 
 export const GEAR_SLOT_LABEL: Record<GearSlot, string> = {
   head: '頭冠',
   robe: '法衣',
   waist: '腰佩',
+  feet: '足履',
   relic: '法器',
 };
 
@@ -334,6 +365,8 @@ export interface GearDef {
   value: number;
   desc: string;
   color: string;
+  /** 有配方的法寶要用靈草「煉器」，price 為另需的靈石 */
+  recipe?: Partial<Record<HerbId, number>>;
 }
 
 export const GEAR: GearDef[] = [
@@ -345,6 +378,11 @@ export const GEAR: GearDef[] = [
   { id: 'cosmos_bag', name: '乾坤袋', slot: 'waist', price: 400, realm: 'foundation', effect: 'loot', value: 1, desc: '歷練額外帶回 1 份靈草', color: '#c9a85c' },
   { id: 'gourd', name: '紫金葫蘆', slot: 'relic', price: 200, realm: 'qi', effect: 'alchemy', value: 10, desc: '煉丹成功率 +10%', color: '#d6a14a' },
   { id: 'thunder_bell', name: '九霄雷鈴', slot: 'relic', price: 800, realm: 'nascent', effect: 'alchemy', value: 25, desc: '煉丹成功率 +25%', color: '#a78bfa' },
+  // 煉器：用靈田種出的靈草打造
+  { id: 'cloud_boots', name: '踏雲靴', slot: 'feet', price: 30, realm: 'qi', effect: 'speed', value: 8, desc: '歷練時間 −8%', color: '#bfefff', recipe: { calm_grass: 4 } },
+  { id: 'flame_boots', name: '赤焰靴', slot: 'feet', price: 80, realm: 'foundation', effect: 'speed', value: 15, desc: '歷練時間 −15%', color: '#f2785c', recipe: { sun_flower: 3, ice_lotus: 1 } },
+  { id: 'herb_robe', name: '百草法衣', slot: 'robe', price: 60, realm: 'qi', effect: 'harvest', value: 1, desc: '靈田每次收成 +1 株', color: '#7fd99a', recipe: { calm_grass: 3, sun_flower: 2 } },
+  { id: 'frost_crown', name: '寒玉冠', slot: 'head', price: 120, realm: 'core', effect: 'stones', value: 20, desc: '歷練所得靈石 +20%', color: '#9fd8ff', recipe: { ice_lotus: 3, sun_flower: 1 } },
 ];
 
 export function gearById(id: string | null | undefined): GearDef | undefined {
@@ -561,6 +599,48 @@ export const MOODS = [
 ] as const;
 
 export const JOURNAL_STONES = 2;
+export const JOURNAL_MAX_CHARS = 500;
+
+/** 每日問心：每天一題反思提示 */
+export const REFLECTION_PROMPTS = [
+  '今天身體哪裡感覺最輕鬆？是因為做了什麼？',
+  '今天有哪一刻，你差點放棄但還是做了？',
+  '今天喝水、走路、吃飯，哪一項最容易？哪一項最難？',
+  '如果明天只能做好一件事，你會選哪一件？',
+  '今天有什麼讓你分心？下次可以怎麼避開？',
+  '今天你對自己說過最溫柔的一句話是什麼？',
+  '最近睡得好嗎？睡前可以少做哪一件事？',
+  '今天吃的哪一餐讓你吃完最有精神？',
+  '今天有沒有一個小小的進步，值得記下來？',
+  '是什麼讓你今天願意打開這個修煉？',
+  '今天的心情像什麼天氣？為什麼？',
+  '這週的自己，跟上週比有什麼不同？',
+  '有哪個習慣，你其實已經不用想就會做了？',
+  '今天有誰讓你覺得被支持？',
+  '如果把今天的疲累分成三份，各來自哪裡？',
+  '今天走路時，你注意到了什麼風景？',
+  '有什麼事你一直拖著？拆成最小的第一步是什麼？',
+  '今天身體給了你什麼訊號：渴、累、餓，還是緊繃？',
+  '對三十天後的自己，你想說什麼？',
+  '今天有沒有哪個時刻，你完全專注在當下？',
+  '今天做得不夠好的地方，換成朋友會怎麼安慰你？',
+  '你理想中的一天早晨長什麼樣子？今天離它多遠？',
+  '今天有什麼讓你笑了？',
+  '最近最想感謝自己的一件事是什麼？',
+  '有什麼「應該做」其實可以放下？',
+  '這個月最想養成的一個小習慣是什麼？',
+  '今天你給了身體什麼好東西？',
+  '如果今天重來一次，你會改變哪一個選擇？',
+  '是什麼讓你覺得自己在變強？',
+  '今晚睡前，想放下哪一件心事？',
+];
+
+/** 依日期決定當天的問心題（同一天固定同一題） */
+export function promptForDay(day: DayKey): string {
+  let h = 0;
+  for (const ch of day) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return REFLECTION_PROMPTS[h % REFLECTION_PROMPTS.length];
+}
 
 /** 由 32 位元種子產生的可重現亂數（mulberry32） */
 export function seededRng(seed: number): () => number {
