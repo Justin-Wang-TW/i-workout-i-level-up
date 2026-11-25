@@ -8,7 +8,9 @@ import {
   type Difficulty,
   type RootId,
 } from '../../packages/game-core/index.ts';
-import { CULTIVATORS, Cultivator } from '../components/Cultivator.tsx';
+import { CULTIVATORS } from '../components/Cultivator.tsx';
+import { Chibi } from '../components/Chibi.tsx';
+import { defaultLook } from '../components/look.ts';
 import { Panel } from '../components/ui.tsx';
 import { useGame } from '../state/GameContext.tsx';
 import { startPath } from '../state/cultivation.ts';
@@ -60,7 +62,7 @@ export function Onboarding() {
           <p className="system-tag">【天道感應】</p>
           <h1 className="awaken-title">汝身具靈根，可入仙途。</h1>
           <div className="awaken-figure">
-            <Cultivator id="sword" realm="qi" size={150} />
+            <Chibi look={defaultLook('sword')} avatar="sword" realm="qi" size={150} />
           </div>
           <p>凡間一飲一啄、一步一息，皆是修行。</p>
           <p>飲靈泉、踏雲行、苦修淬體，便能積累修為，自練氣一路突破，直至飛升。</p>
@@ -95,7 +97,7 @@ export function Onboarding() {
     <div className="onboarding">
       <Panel title="立下道號">
         <div className="choose-preview">
-          <Cultivator id={avatar} realm="foundation" size={150} />
+          <Chibi look={defaultLook(avatar)} avatar={avatar} realm="foundation" size={150} />
           <div>
             <div className="choose-name">{chosen.name}</div>
             <div className="muted">{chosen.intro}</div>
@@ -112,7 +114,7 @@ export function Onboarding() {
               onClick={() => setAvatar(c.id)}
               aria-pressed={avatar === c.id}
             >
-              <Cultivator id={c.id} realm="qi" size={60} animate={false} />
+              <Chibi look={defaultLook(c.id)} avatar={c.id} realm="qi" size={60} animate={false} showCompanion={false} />
               <span>{c.name}</span>
             </button>
           ))}

@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { DIFFICULTY_LABEL, GAME_CONFIG, type Difficulty } from '../../packages/game-core/index.ts';
-import { CULTIVATORS, Cultivator } from '../components/Cultivator.tsx';
+import { CULTIVATORS } from '../components/Cultivator.tsx';
+import { Chibi } from '../components/Chibi.tsx';
+import { defaultLook } from '../components/look.ts';
 import { Panel } from '../components/ui.tsx';
 import { ShortcutLink } from './ShortcutLink.tsx';
 import { useGame } from '../state/GameContext.tsx';
@@ -75,7 +77,7 @@ export function Settings() {
               className={`avatar-choice ${player.avatar === a.id ? 'selected' : ''}`}
               onClick={() => update((s) => updatePlayer(s, { avatar: a.id }))}
             >
-              <Cultivator id={a.id} realm="qi" size={52} animate={false} />
+              <Chibi look={defaultLook(a.id)} avatar={a.id} realm="qi" size={52} animate={false} showCompanion={false} />
               <span>{a.name}</span>
             </button>
           ))}

@@ -1,6 +1,6 @@
 // 簡易 Service Worker：讓加入主畫面的網頁可以離線開啟。
 // 每次發佈新版時把 VERSION 加 1，舊快取就會被清除。
-const VERSION = 'v4';
+const VERSION = 'v5';
 const CACHE = `iwlu-${VERSION}`;
 
 self.addEventListener('install', (event) => {

@@ -1,15 +1,15 @@
 // 升級動畫：同境界內為「修為精進」；跨境界為「渡劫突破」
 import { realmStage } from '../../packages/game-core/index.ts';
-import type { AvatarId } from '../state/types.ts';
-import { Cultivator } from './Cultivator.tsx';
+import type { Player } from '../state/types.ts';
+import { PlayerFigure } from './PlayerFigure.tsx';
 
 export function Breakthrough({
-  avatar,
+  player,
   fromLevel,
   toLevel,
   onDone,
 }: {
-  avatar: AvatarId;
+  player: Pick<Player, 'avatar' | 'look'>;
   fromLevel: number;
   toLevel: number;
   onDone: () => void;
@@ -33,7 +33,7 @@ export function Breakthrough({
                 <i key={i} style={{ transform: `rotate(${i * 30}deg)`, animationDelay: `${(i % 4) * 0.12}s` }} />
               ))}
             </div>
-            <Cultivator id={avatar} realm={to.realm.id} size={170} />
+            <PlayerFigure player={player} realm={to.realm.id} size={170} />
           </div>
           <p className="system-tag">【修為精進】</p>
           <div className="bt-title">{to.label}</div>
@@ -60,7 +60,7 @@ export function Breakthrough({
       <div className="bt-pillar" aria-hidden="true" />
       <div className="bt-card">
         <div className="bt-stage big">
-          <Cultivator id={avatar} realm={to.realm.id} size={200} />
+          <PlayerFigure player={player} realm={to.realm.id} size={200} />
         </div>
         <div className="bt-reveal">
           <p className="system-tag">【天劫已渡】</p>

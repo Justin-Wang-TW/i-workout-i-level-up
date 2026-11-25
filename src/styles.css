@@ -2240,3 +2240,216 @@ textarea:focus {
   color: var(--jade);
   margin-top: 2px;
 }
+
+/* ═════════ v0.9 Q版與水墨場景 ═════════ */
+.scene {
+  position: relative;
+  overflow: hidden;
+  border-radius: 14px;
+  background: #8e9aa0;
+}
+.scene-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.scene-figure {
+  position: absolute;
+  left: 50%;
+  bottom: 8%;
+  transform: translateX(-50%);
+  line-height: 0;
+}
+.hero2 {
+  position: relative;
+  margin-bottom: 14px;
+}
+.hero2 .scene {
+  border: 1px solid rgba(201, 180, 138, 0.45);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+.look-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 2px solid #c9a85c;
+  background: radial-gradient(circle at 40% 35%, #f3e1b0, #b98b3d);
+  color: #3a2a12;
+  font-family: var(--serif);
+  font-weight: 700;
+  font-size: 14px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35);
+}
+
+/* 羊皮紙卡 */
+.scroll-card {
+  position: relative;
+  margin: -26px 8px 0;
+  padding: 14px 14px 12px;
+  border-radius: 14px;
+  border: 2px solid #b79a64;
+  background:
+    radial-gradient(120% 80% at 50% 0%, rgba(255, 255, 255, 0.55), transparent 60%),
+    linear-gradient(180deg, #f2e8cf, #e4d5b0);
+  color: #3a2f22;
+  box-shadow: 0 0 0 4px rgba(58, 74, 76, 0.55), 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+.scroll-card .hero-name {
+  text-align: center;
+  font-size: 14px;
+  color: #6b5a3f;
+}
+.scroll-card .hero-name span {
+  color: #8a7655;
+}
+.bt-head {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+  font-family: var(--serif);
+  font-weight: 700;
+  font-size: 24px;
+  letter-spacing: 0.12em;
+  color: #2b2218;
+  margin: 4px 0 10px;
+}
+.bt-arrow {
+  color: #4f8f86;
+  font-size: 20px;
+  letter-spacing: 0;
+}
+.bt-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.bt-cardlet {
+  position: relative;
+  border: 1.5px solid #cdb88e;
+  border-radius: 10px;
+  background: #faf4e4;
+  padding: 8px 8px 6px;
+  text-align: center;
+  font-size: 13px;
+}
+.bt-cardlet.done::after {
+  content: '✔';
+  position: absolute;
+  right: 6px;
+  top: 4px;
+  color: #3e9c5a;
+  font-weight: 700;
+}
+.bt-cl-title {
+  margin-bottom: 6px;
+  color: #4a3d2c;
+}
+.bt-cardlet .bar {
+  height: 8px;
+  background: #3b3f45;
+}
+.bt-cl-num {
+  margin-top: 3px;
+  font-size: 12px;
+  color: #6b5a3f;
+}
+.bt-cl-flame {
+  display: flex;
+  justify-content: center;
+  height: 28px;
+  margin-top: -6px;
+  overflow: hidden;
+}
+.bt-note {
+  text-align: center;
+  color: #b2552f;
+  font-size: 12.5px;
+  margin: 8px 0 6px;
+}
+.scroll-stats {
+  display: flex;
+  justify-content: space-around;
+  padding: 6px 0;
+  border-top: 1px dashed #cdb88e;
+  border-bottom: 1px dashed #cdb88e;
+  font-size: 13px;
+  color: #5a4a33;
+}
+.scroll-stats b {
+  color: #2b2218;
+}
+.scroll-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 6px;
+  font-size: 12.5px;
+  color: #5a4a33;
+}
+
+/* 形象編輯 */
+.look-preview .scene {
+  border: 1px solid var(--line);
+}
+.look-actions {
+  display: flex;
+  gap: 8px;
+  margin: 10px 0 14px;
+}
+.look-actions .btn {
+  flex: 1;
+}
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.swatch {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  padding: 0;
+}
+.swatch.active {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px var(--gold-soft);
+}
+.scene-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+.scene-pick {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  border-radius: 12px;
+  border: 1.5px solid var(--line);
+  background: rgba(255, 255, 255, 0.02);
+  text-align: left;
+  font-size: 14px;
+}
+.scene-pick.active {
+  border-color: var(--gold);
+  box-shadow: 0 0 10px var(--gold-soft);
+}
+.scene-pick:disabled {
+  opacity: 0.45;
+}
+.scene-pick small {
+  font-size: 11px;
+}
+.scene-thumb .scene {
+  border-radius: 8px;
+}

@@ -54,7 +54,7 @@ function LevelUpOverlay() {
   if (info.level <= save.lastSeenLevel || !save.player) return null;
   return (
     <Breakthrough
-      avatar={save.player.avatar}
+      player={save.player}
       fromLevel={save.lastSeenLevel}
       toLevel={info.level}
       onDone={() => update(markLevelSeen)}
@@ -118,6 +118,7 @@ function Shell() {
   };
   const [workoutOpen, setWorkoutOpen] = useState(false);
   const [walkOpen, setWalkOpen] = useState(false);
+  const [pathSection, setPathSection] = useState<'path' | 'look'>('path');
 
   if (!save.player) {
     return (
@@ -148,17 +149,27 @@ function Shell() {
             onOpenWorkout={() => setWorkoutOpen(true)}
             onOpenWalk={() => setWalkOpen(true)}
             onGoQuests={() => setTab('quests')}
-            onGoPath={() => setTab('path')}
+            onGoPath={() => {
+              setPathSection('path');
+              setTab('path');
+            }}
+            onGoLook={() => {
+              setPathSection('look');
+              setTab('path');
+            }}
           />
         )}
         {tab === 'quests' && <Quests />}
-        {tab === 'path' && <Path />}
+        {tab === 'path' && <Path key={pathSection} initial={pathSection} />}
         {tab === 'history' && <History />}
         {tab === 'settings' && <Settings />}
       </main>
       <nav className="tabbar" aria-label="主選單">
         {(Object.keys(LABELS) as Tab[]).map((t) => (
-          <button key={t} className={tab === t ? 'active' : ''} onClick={() => setTab(t)} aria-current={tab === t ? 'page' : undefined}>
+          <button key={t} className={tab === t ? 'active' : ''} onClick={() => {
+              if (t === 'path') setPathSection('path');
+              setTab(t);
+            }} aria-current={tab === t ? 'page' : undefined}>
             <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" aria-hidden="true">
               {ICONS[t]}
             </svg>

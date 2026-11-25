@@ -16,6 +16,7 @@ import type {
   Workout,
   WorkoutType,
 } from '../../packages/game-core/index.ts';
+import type { Look } from '../components/look.ts';
 
 export type AvatarId = 'sword' | 'alchemy' | 'talisman' | 'body';
 
@@ -31,6 +32,8 @@ export interface Player {
   safetyAcknowledged: boolean;
   /** 測靈根結果（v0.7 起） */
   root?: RootId;
+  /** 外觀：Q版或寫意、髮型、衣色、場景…（v0.9 起） */
+  look?: Look;
 }
 
 export interface Cup {

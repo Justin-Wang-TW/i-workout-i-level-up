@@ -6,17 +6,21 @@ import {
   isDayPaused,
   levelInfo,
   planStage,
+  realmStage,
   streakMultiplier,
   tipForDay,
   type Attribute,
 } from '../../packages/game-core/index.ts';
-import { CULTIVATORS, Cultivator } from '../components/Cultivator.tsx';
+import { CULTIVATORS } from '../components/Cultivator.tsx';
+import { PlayerFigure, lookOf } from '../components/PlayerFigure.tsx';
+import { Scene } from '../components/Scene.tsx';
+import { shade } from '../components/look.ts';
 import { Flame } from '../components/Flame.tsx';
 import { claimableMilestones, flameTier, pathProgress } from '../state/cultivation.ts';
 import { getInv } from '../state/inventory.ts';
 import { NutritionPanel } from './FoodLog.tsx';
 import { DailyLotPanel, JournalPanel } from './Spirit.tsx';
-import { Panel, ProgressBar, StatPill } from '../components/ui.tsx';
+import { Panel, ProgressBar } from '../components/ui.tsx';
 import { MealsPanel } from './Meals.tsx';
 import { useGame } from '../state/GameContext.tsx';
 import {
@@ -38,11 +42,13 @@ export function Status({
   onOpenWalk,
   onGoQuests,
   onGoPath,
+  onGoLook,
 }: {
   onOpenWorkout: () => void;
   onOpenWalk: () => void;
   onGoQuests: () => void;
   onGoPath: () => void;
+  onGoLook: () => void;
 }) {
   const { save, today, update, notify } = useGame();
   const player = save.player!;
@@ -64,6 +70,12 @@ export function Status({
   const milestones = claimableMilestones(save, today).length;
   const back = inv.expedition && Date.parse(inv.expedition.end) <= Date.now();
   const paused = isDayPaused(save.pauses, today);
+  const look = lookOf(player);
+  // 下一個「不同」的小境界（例如 化神初期 → 化神中期）
+  let nextLevel = info.level + 1;
+  while (nextLevel < 100 && realmStage(nextLevel).label === info.realmLabel) nextLevel += 1;
+  const nextLabel = realmStage(Math.min(100, nextLevel)).label;
+  const doneCount = quests.filter((q) => q.completed).length;
 
   const drink = () => {
     const before = day.waterMl;
@@ -85,56 +97,73 @@ export function Status({
 
   return (
     <div className="screen">
-      <Panel className={`hero realm-${info.realm.id}`}>
-        <div className="hero-figure">
+      <section className={`hero2 realm-${info.realm.id}`}>
+        <Scene id={look.scene} height={300}>
           <div className={absorbing ? 'absorb' : ''}>
-            <Cultivator id={player.avatar} realm={info.realm.id} size={168} gear={inv.equipped} />
+            <PlayerFigure player={player} realm={info.realm.id} size={176} gear={inv.equipped} />
           </div>
-        </div>
-        <div className="hero-name">
-          {player.name}
-          <span className="muted">・{cls.name}</span>
-        </div>
-        <div className="hero-realm">{info.realmLabel}</div>
-        <div className="hero-sub muted">
-          {info.realm.title}・第 {info.level} 重
-        </div>
-
-        <div className="xp-row">
-          <span>修為</span>
-          <span className="mono">
-            {info.isMax ? '圓滿' : `${info.xpIntoLevel.toLocaleString()} / ${info.xpForThisLevel.toLocaleString()}`}
-          </span>
-        </div>
-        <ProgressBar value={info.xpIntoLevel} max={info.xpForThisLevel || 1} tone="gold" />
-
-        <div className="stat-grid four">
-          {(Object.keys(ATTRIBUTE_LABEL) as Attribute[]).map((k) => (
-            <StatPill key={k} label={ATTRIBUTE_LABEL[k]} value={attr[k]} />
-          ))}
-        </div>
-        <div className="streak-row flame-row">
-          <Flame streak={streak} size={46} />
-          <div className="grow">
-            <div>
-              本命丹火・<span style={{ color: flame.color }}>{flame.name}</span>
+        </Scene>
+        <button className="look-btn" onClick={onGoLook} aria-label="更換形象與場景">
+          形象
+        </button>
+        <div className="scroll-card">
+          <div className="hero-name">
+            {player.name}
+            <span>・{cls.name}・{info.realm.title}</span>
+          </div>
+          <div className="bt-head">
+            <span>{info.realmLabel}</span>
+            {!info.isMax && (
+              <>
+                <span className="bt-arrow" aria-hidden="true">
+                  ≫
+                </span>
+                <span>{nextLabel}</span>
+              </>
+            )}
+          </div>
+          <div className="bt-cards">
+            <div className={`bt-cardlet ${info.isMax ? 'done' : ''}`}>
+              <div className="bt-cl-title">積累修為</div>
+              <ProgressBar value={info.xpIntoLevel} max={info.xpForThisLevel || 1} tone="jade" />
+              <div className="mono bt-cl-num">{info.isMax ? '圓滿' : `${info.xpIntoLevel}/${info.xpForThisLevel}`}</div>
             </div>
-            <div className="muted">
-              {paused ? `閉關中・丹火溫養不熄（連燃 ${streak} 日）` : `連燃 ${streak} 日・${mult > 1 ? `修為 ×${mult}` : '連修 3 日起修為加成'}`}
+            <div className={`bt-cardlet ${doneCount === quests.length ? 'done' : ''}`}>
+              <div className="bt-cl-title">今日功課</div>
+              <ProgressBar value={doneCount} max={quests.length} tone="jade" />
+              <div className="mono bt-cl-num">
+                {doneCount}/{quests.length}
+              </div>
+            </div>
+            <div className={`bt-cardlet ${streak >= 7 ? 'done' : ''}`}>
+              <div className="bt-cl-title">本命丹火</div>
+              <div className="bt-cl-flame">
+                <Flame streak={streak} size={28} />
+              </div>
+              <div className="mono bt-cl-num">{streak} 日</div>
             </div>
           </div>
-          <div className="wallet-mini mono" title="靈石／精力">
+          <div className="bt-note">
+            {info.isMax ? '已臻飛升，逍遙天地' : nextLevel === info.level + 1 ? `修為滿 ${info.xpForThisLevel} 即可突破至「${nextLabel}」` : `再升 ${nextLevel - info.level} 重即可突破至「${nextLabel}」`}
+          </div>
+          <div className="scroll-stats">
+            {(Object.keys(ATTRIBUTE_LABEL) as Attribute[]).map((k) => (
+              <span key={k}>
+                {ATTRIBUTE_LABEL[k]} <b className="mono">{attr[k]}</b>
+              </span>
+            ))}
+          </div>
+          <div className="scroll-foot">
             <span>
-              <i className="gem" aria-hidden="true" />
-              {inv.stones}
+              <span style={{ color: flame.color === '#ffffff' ? '#8a6d2f' : shade(flame.color, 0.75) }}>{flame.name}</span>
+              {paused ? '・閉關中，丹火溫養不熄' : mult > 1 ? `・修為 ×${mult}` : '・連修 3 日起修為加成'}
             </span>
-            <span>
-              <i className="bolt" aria-hidden="true" />
-              {inv.stamina}
+            <span className="mono">
+              靈石 {inv.stones}・精力 {inv.stamina}
             </span>
           </div>
         </div>
-      </Panel>
+      </section>
 
       {plan && save.path ? (
         <button className="path-mini" onClick={onGoPath}>

@@ -25,7 +25,7 @@ import {
   type HerbId,
   type PillId,
 } from '../../packages/game-core/index.ts';
-import { Cultivator } from '../components/Cultivator.tsx';
+import { PlayerFigure } from '../components/PlayerFigure.tsx';
 import { Panel, ProgressBar } from '../components/ui.tsx';
 import { useGame } from '../state/GameContext.tsx';
 import {
@@ -57,12 +57,14 @@ import {
 } from '../state/cultivation.ts';
 import { totalXp } from '../state/game.ts';
 import { getInv } from '../state/inventory.ts';
+import { LookEditor } from './LookEditor.tsx';
 import { RestPanel } from './Rest.tsx';
 import { RootQuiz } from './RootQuiz.tsx';
 
-type Section = 'path' | 'skills' | 'journey' | 'garden' | 'gear';
+type Section = 'path' | 'look' | 'skills' | 'journey' | 'garden' | 'gear';
 const SECTIONS: { id: Section; label: string }[] = [
   { id: 'path', label: '築基' },
+  { id: 'look', label: '形象' },
   { id: 'skills', label: '功法' },
   { id: 'journey', label: '歷練' },
   { id: 'garden', label: '靈田丹房' },
@@ -106,6 +108,7 @@ export function Path({ initial = 'path' }: { initial?: Section }) {
         ))}
       </div>
       {section === 'path' && <PathSection />}
+      {section === 'look' && <LookEditor />}
       {section === 'skills' && <SkillsSection />}
       {section === 'journey' && <JourneySection />}
       {section === 'garden' && <GardenSection />}
@@ -384,7 +387,7 @@ function JourneySection() {
       <Panel title="出門歷練" right={<span className="muted">關掉 App 也會繼續</span>}>
         {ex && active ? (
           <div className="journey-active">
-            <Cultivator id={save.player!.avatar} realm={levelInfo(totalXp(save)).realm.id} size={84} gear={inv.equipped} />
+            <PlayerFigure player={save.player!} realm={levelInfo(totalXp(save)).realm.id} size={84} gear={inv.equipped} />
             <div className="grow">
               <div>
                 正在 <b>{active.name}</b> 歷練
@@ -627,7 +630,7 @@ function GearSection() {
     <>
       <Panel title="法寶" right={<span className="muted">穿戴後顯示在修士身上</span>}>
         <div className="gear-preview">
-          <Cultivator id={save.player!.avatar} realm={realm} size={150} gear={inv.equipped} />
+          <PlayerFigure player={save.player!} realm={realm} size={150} gear={inv.equipped} />
           <ul className="gear-slots">
             {slots.map((slot) => {
               const g = GEAR.find((x) => x.id === inv.equipped[slot]);
