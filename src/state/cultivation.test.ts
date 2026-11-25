@@ -194,7 +194,7 @@ describe('法寶、靈田與煉丹', () => {
   });
 
   it('煉丹成功得丹藥；一天只能服一顆', () => {
-    let s = { ...newSave(), inv: { ...getInv(newSave()), herbs: { calm_grass: 6, sun_flower: 1 } } };
+    let s: SaveData = { ...newSave(), inv: { ...getInv(newSave()), herbs: { calm_grass: 6, sun_flower: 1 } } };
     s = craftPill(s, 'gather_pill', () => 0).save;
     expect(getInv(s).pills.gather_pill).toBe(1);
     const fail = craftPill(s, 'qi_pill', () => 0.999);
