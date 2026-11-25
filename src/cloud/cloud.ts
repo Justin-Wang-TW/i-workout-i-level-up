@@ -1,8 +1,12 @@
 // 與 Supabase 溝通的精簡用戶端（不需額外套件）。
 // 網址與公開金鑰在建置時由環境變數帶入：VITE_SUPABASE_URL、VITE_SUPABASE_ANON_KEY。
 
-const URL_ = ((import.meta.env.VITE_SUPABASE_URL as string | undefined) ?? '').replace(/\/$/, '');
-const KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined) ?? '';
+// 未設定時使用正式專案（anon 為公開金鑰，受 RLS 保護，可放在前端）。
+const DEFAULT_URL = 'https://mkpiijqcwfjazdxxqbti.supabase.co';
+const DEFAULT_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1rcGlpanFjd2ZqYXpkeHhxYnRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTU1NjQ0MjMsImV4cCI6MjExMTE0MDQyM30.3GZRSQ656G2of03KhRLRrV4Vf91oq0Ow6RQQaepHzaM';
+const URL_ = ((import.meta.env.VITE_SUPABASE_URL as string | undefined) || DEFAULT_URL).replace(/\/$/, '');
+const KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined) || DEFAULT_KEY;
 const SESSION_KEY = 'iwlu-cloud-session';
 
 export const SHORTCUT_NAME = '我運動我升級同步';

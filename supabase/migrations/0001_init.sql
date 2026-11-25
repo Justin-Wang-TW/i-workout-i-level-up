@@ -8,8 +8,8 @@ create extension if not exists pgcrypto;
 -- 角色
 create table public.players (
   user_id uuid primary key references auth.users (id) on delete cascade,
-  name text not null default '無名獵人',
-  avatar_id text not null default 'azure',
+  name text not null default '無名散修',
+  avatar_id text not null default 'sword',
   created_at timestamptz not null default now(),
   water_goal_ml int not null default 2000 check (water_goal_ml between 1000 and 4000),
   cup_ml int not null default 250,
@@ -113,3 +113,8 @@ create policy "own logs" on public.activity_logs
 create policy "own ledger read" on public.xp_ledger
   for select using (auth.uid() = user_id);
 -- XP 只能由伺服器端判定後寫入，避免從前端直接加分
+
+-- 明確授權（新專案可能未自動開放 Data API 權限）
+grant usage on schema public to anon, authenticated, service_role;
+grant all on all tables in schema public to service_role;
+grant select, insert, update, delete on all tables in schema public to authenticated;
