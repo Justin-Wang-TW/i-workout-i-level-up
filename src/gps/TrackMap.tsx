@@ -1,10 +1,13 @@
-// 輕量地圖：以 CARTO 深色圖磚（OpenStreetMap 資料）為底，疊上 SVG 軌跡。不需額外套件。
+// 輕量地圖：以 OpenStreetMap 官方免費圖磚為底（CSS 轉成深色），疊上 SVG 軌跡。不需額外套件、不需金鑰。
+// 依 OSM 圖磚使用政策：只用 https://tile.openstreetmap.org、地圖上清楚標示出處、不預先下載或離線快取。
 import { useEffect, useRef, useState } from 'react';
 import { TILE, boundsCenter, fitZoom, worldPx, type LatLng } from './geo.ts';
 
+/** 圖磚網址集中在這裡，之後要換來源只改一處 */
+export const TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+
 function tileUrl(z: number, x: number, y: number): string {
-  const sub = 'abcd'[(x + y) % 4];
-  return `https://${sub}.basemaps.cartocdn.com/dark_all/${z}/${x}/${y}@2x.png`;
+  return TILE_URL.replace('{z}', String(z)).replace('{x}', String(x)).replace('{y}', String(y));
 }
 
 export function TrackMap({
@@ -86,8 +89,10 @@ export function TrackMap({
       </svg>
       {!hasPoints && <div className="map-empty">等待定位訊號…</div>}
       <div className="map-attr">
-        © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> 貢獻者 ©{' '}
-        <a href="https://carto.com/attributions">CARTO</a>
+        © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">
+          OpenStreetMap
+        </a>{' '}
+        貢獻者
       </div>
     </div>
   );

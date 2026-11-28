@@ -127,7 +127,7 @@ shortcuts/            iPhone 捷徑製作教學與傳送格式
 
 ## 行功地圖說明
 
-- 地圖底圖使用 CARTO 深色圖磚（資料來源 OpenStreetMap），免費額度適合個人使用；使用者很多時請改用付費圖磚服務。
+- 地圖底圖使用 OpenStreetMap 官方免費圖磚（tile.openstreetmap.org），需遵守其使用政策：保留出處標示、不預先下載或離線快取；使用者變多時請改用自架或付費圖磚，網址集中在 `src/gps/TrackMap.tsx` 的 `TILE_URL`。
 - iPhone 鎖定螢幕後網頁會暫停定位，行功時請讓螢幕保持亮著（遊戲會嘗試自動防止螢幕變暗）。
 - 想鎖螢幕走路：用可背景錄製的 App（例如免費的 Open GPX Tracker）錄路線，結束後「儲存到檔案」，再到遊戲「紀錄 › 匯入 GPX 路線」。Strava 的 GPX 需從 strava.com 網頁版活動頁「⋯ › Export GPX」下載。
 - 匯入時會濾掉訊號跳點、扣掉停留時間；同一條路線不能重複匯入。
